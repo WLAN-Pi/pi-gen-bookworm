@@ -1,4 +1,4 @@
-IMG_NAME='wlanpi'
+IMG_NAME='wlanpi-2'
 RELEASE='bookworm'
 DEPLOY_COMPRESSION='gz'
 COMPRESSION_LEVEL='9'
