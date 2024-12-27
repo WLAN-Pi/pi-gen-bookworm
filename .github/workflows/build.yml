@@ -1,0 +1,56 @@
+name: Build Pi-Gen Image
+
+on:
+  workflow_dispatch: # Allow manual triggering of the workflow
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git \
+            coreutils \
+            quilt \
+            parted \
+            qemu-user-static \
+            debootstrap \
+            zerofree \
+            zip \
+            dosfstools \
+            bsdtar \
+            libcap2-bin \
+            rsync \
+            grep \
+            xz-utils \
+            file \
+            git \
+            curl \
+            cpio \
+            python3 \
+            python3-pip \
+            jq \
+            binfmt-support \
+            systemd-container
+
+      - name: Grant Execution Permissions
+        run: chmod +x build.sh
+
+      - name: Run Build Script
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          ./build.sh
+
+      - name: Archive and Upload Build Artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: pi-gen-image
+          path: deploy/
