@@ -4,20 +4,55 @@ on_chroot << EOF
 
 CONFIG="/boot/firmware/config.txt"
 
-# Only proceed if [cm4] section exists
-if grep -q '^\[cm4\]' "\$CONFIG"; then
-    
-    # Check if gpio=27=op,dh is already in the [cm4] section
-    if ! sed -n '/^\[cm4\]/,/^\[/p' "\$CONFIG" | grep -q 'gpio=27=op,dh'; then
-        echo "Adding 'gpio=27=op,dh' to [cm4] section in \$CONFIG"
-        # Insert right after the [cm4] line 
-        sed -i '/^\[cm4\]/a gpio=27=op,dh' "\$CONFIG"
-    else
-        echo "'gpio=27=op,dh' already found in the [cm4] section. No change."
-    fi
+# Section to modify
+SECTION="cm4"
+
+# Lines to add if missing
+LINES_TO_ADD=(
+    "dtoverlay=disable-wifi"
+    "dtoverlay=disable-bt"
+    "dtoverlay=uart3"
+    "dtoverlay=uart2"
+    "dtoverlay=uart0"
+    "gpio=27=op,dh"
+    "dtoverlay=max3421-hcd"
+)
+
+# Check if the section exists
+if grep -q "^\[\$SECTION\]" "\$CONFIG"; then
+
+    echo "[\$SECTION] section found in \$CONFIG. Checking for missing lines."
+
+    for LINE in "\${LINES_TO_ADD[@]}"; do
+        # Check if the line exists in the section
+        if ! sed -n "/^\[\$SECTION\]/,/^\[/p" "\$CONFIG" | grep -q "\$LINE"; then
+            echo "Adding '\$LINE' to [\$SECTION] section in \$CONFIG"
+            sed -i "/^\[\$SECTION\]/a \$LINE" "\$CONFIG"
+        else
+            echo "'\$LINE' already exists in [\$SECTION] section. Skipping."
+        fi
+    done
 
 else
-    echo "No [cm4] section found in \$CONFIG. Skipping insertion."
+    echo "No [\$SECTION] section found in \$CONFIG. Skipping addition of lines."
 fi
+
+EOF
+
+
+on_chroot << EOF
+
+CMDLINE="/boot/firmware/cmdline.txt"
+
+# The desired new content for cmdline.txt
+NEW_CMDLINE="console=ttyAMA3,115200 console=tty1 root=ROOTDEV rootfstype=ext4 fsck.repair=yes rootwait quiet init=/usr/lib/raspberrypi-sys-mods/firstboot cfg80211.ieee80211_regdom=US"
+
+# Replace the entire line in cmdline.txt
+echo "\$NEW_CMDLINE" > "\$CMDLINE"
+
+# Feedback to the user
+echo "Replaced the contents of \$CMDLINE with the new line."
+
+touch /boot/firmware/cmdline.txt
 
 EOF
