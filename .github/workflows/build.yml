@@ -36,7 +36,8 @@ jobs:
             python3-pip \
             jq \
             binfmt-support \
-            systemd-container
+            systemd-container \
+            arch-test
 
       - name: Grant Execution Permissions
         run: chmod +x build.sh
