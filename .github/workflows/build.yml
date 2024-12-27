@@ -24,7 +24,7 @@ jobs:
             zerofree \
             zip \
             dosfstools \
-            bsdtar \
+            libarchive-tools \  # Replaces bsdtar
             libcap2-bin \
             rsync \
             grep \
