@@ -5,7 +5,7 @@ on:
 
 jobs:
   build-image:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04 # Explicitly specify the Ubuntu version
 
     steps:
       - name: Checkout Repository
@@ -50,7 +50,8 @@ jobs:
 
       - name: Archive and Upload Build Artifacts
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4 # Updated to v4
         with:
           name: pi-gen-image
           path: deploy/
+
