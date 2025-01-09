@@ -1,4 +1,4 @@
-name: Build Pi-Gen Image
+name: Build pi-gen image
 
 on:
   workflow_dispatch: # Allow manual triggering of the workflow
@@ -9,7 +9,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Dependencies
         run: |
@@ -55,3 +55,15 @@ jobs:
           name: pi-gen-image
           path: deploy/
 
+  slack-workflow-status:
+    if: ${{ always() && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
+    name: Post Workflow Status to Slack
+    needs:
+      - sbuild
+    runs-on: 'ubuntu-22.04'
+    steps:
+      - name: Slack Workflow Notification
+        uses: Gamesight/slack-workflow-status@master
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
