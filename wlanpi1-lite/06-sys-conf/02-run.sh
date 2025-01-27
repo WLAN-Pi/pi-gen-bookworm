@@ -28,11 +28,9 @@ ExecStart=/bin/bash -c '
     if [ ! -f /boot/firmware/cmdline.txt ]; then
         echo "Warning: cmdline.txt not found"
     else
-        cp /boot/firmware/cmdline.txt /boot/firmware/cmdline.txt.bak
-        if [ -c /dev/serial0 ]; then
-            sed -i "s/console=.*$/console=ttyS0,115200n8/" /boot/firmware/cmdline.txt
-        elif [ -c /dev/ttyAMA3 ]; then
-            sed -i "s/console=.*$/console=serial0,115200n8/" /boot/firmware/cmdline.txt
+        cp /boot/firmware/cmdline.txt /boot/firmware/cmdline.txt.firstboot.bak
+        if [ -c /dev/ttyAMA3 ]; then
+            sed -i 's/console=serial0,[0-9]* /console=ttyAMA3,115200 /' /boot/firmware/cmdline.txt
         else
             echo "Warning: No supported serial device found"
         fi
