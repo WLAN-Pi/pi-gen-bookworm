@@ -2,11 +2,8 @@ ssh less sudo
 console-setup keyboard-configuration debconf-utils parted
 bash-completion
 python-is-python3
-gpiod python3-libgpiod
-python3-gpiozero
-raspi-gpio python3-rpi-lgpio
-python3-spidev
-python3-smbus2
+gpiod
+raspi-gpio
 avahi-daemon
 ca-certificates curl
 fake-hwclock usbutils
@@ -27,4 +24,3 @@ raspi-utils
 udisks2
 unzip zip
 file
-python3-venv
