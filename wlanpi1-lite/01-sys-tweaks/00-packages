@@ -24,3 +24,5 @@ raspi-utils
 udisks2
 unzip zip
 file
+vim
+tmux
