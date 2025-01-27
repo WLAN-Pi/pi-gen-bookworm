@@ -1,3 +1,6 @@
+ufw
+nftables
+iptables
 wlanpi-webui
 wlanpi-core
 wlanpi-profiler
