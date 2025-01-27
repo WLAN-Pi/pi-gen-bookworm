@@ -48,7 +48,14 @@ ExecStart=/bin/bash -c '
 
     base_device=$(echo "$root_dev" | sed 's/p[0-9]*$//')
 
-    timeout 30 bash -c "partprobe $base_device && resize2fs $root_dev"
+    part_num=$(echo "$root_dev" | grep -o '[0-9]*$')
+
+    if [ -z "$part_num" ]; then
+        echo "Error: Could not determine partition number"
+        exit 1
+    fi
+
+    timeout 30 bash -c "parted -s $base_device resizepart $part_num 100% && partprobe $base_device && resize2fs $root_dev"
     if [ $? -ne 0 ]; then
         echo "Error: Resize operation failed or timed out after 30 seconds"
         exit 1
