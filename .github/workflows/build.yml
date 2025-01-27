@@ -48,11 +48,15 @@ jobs:
         run: |
           sudo ./build.sh
 
+      - name: Get current date
+        id: date
+        run: echo "date=$(date -u +'%Y%m%dt%H%M%S')" >> $GITHUB_ENV
+
       - name: Archive and Upload Build Artifacts
         if: always()
-        uses: actions/upload-artifact@v4 # Updated to v4
+        uses: actions/upload-artifact@v4
         with:
-          name: pi-gen-image-$(date +%Y%m%d%H%M%S)
+          name: wlan-pi-image~gha${{ env.date }}
           path: deploy/
 
   slack-workflow-status:
