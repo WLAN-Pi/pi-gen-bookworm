@@ -1,4 +1,6 @@
-# pi-gen
+# wlan(pi-gen)
+
+Tool used to create WLAN Pi OS images for bookworm.
 
 Tool used to create Raspberry Pi OS images, and custom images based on Raspberry Pi OS,
 which was in turn derived from the Raspbian project.

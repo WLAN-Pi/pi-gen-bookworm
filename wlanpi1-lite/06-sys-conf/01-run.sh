@@ -38,21 +38,3 @@ else
 fi
 
 EOF
-
-
-#on_chroot << EOF
-
-#CMDLINE="/boot/firmware/cmdline.txt"
-
-# The desired new content for cmdline.txt
-#NEW_CMDLINE="console=ttyAMA3,115200 console=tty1 root=ROOTDEV rootfstype=ext4 fsck.repair=yes rootwait quiet init=/usr/lib/raspberrypi-sys-mods/firstboot cfg80211.ieee80211_regdom=US"
-
-# Replace the entire line in cmdline.txt
-#echo "\$NEW_CMDLINE" > "\$CMDLINE"
-
-# Feedback to the user
-#echo "Replaced the contents of \$CMDLINE with the new line."
-
-#touch /boot/firmware/cmdline.txt
-
-#EOF

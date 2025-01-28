@@ -3,6 +3,7 @@ nftables
 wlanpi-webui
 wlanpi-core
 wlanpi-profiler
+wlanpi-misc-firmware
 scandump
 tcpdump
 tshark
