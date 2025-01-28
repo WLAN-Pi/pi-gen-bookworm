@@ -74,7 +74,7 @@ Type=oneshot
 RemainAfterExit=yes
 StandardOutput=journal
 StandardError=journal
-ExecStart=/usr/sbin/wlanpi-resize-fs
+ExecStart=/usr/sbin/wlanpi-system-init
 ExecStartPost=/bin/touch /var/lib/wlanpi-system-init-service-ran
 
 [Install]
