@@ -8,5 +8,5 @@ Index: jessie-stage2/rootfs/etc/inputrc
  $endif
 +
 +# mappings for up and down arrows search history
-+# "\e[B": history-search-forward
-+# "\e[A": history-search-backward
++ "\e[B": history-search-forward
++ "\e[A": history-search-backward

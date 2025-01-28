@@ -1,11 +1,33 @@
-name: Build pi-gen image
+name: Build wlan(pi-gen) bookworm image
 
 on:
-  workflow_dispatch: # Allow manual triggering of the workflow
+  workflow_dispatch:
+    inputs:
+      repos:
+        descriptions: Repos to include
+        required: true
+        type: choice
+        options:
+          - both
+          - main
+        default: both
 
 jobs:
+  build-prep:
+    runs-on: ubuntu-24.04-arm
+    outputs:
+      repos: ${{ steps.set-repos.outputs.repo }}
+    steps:
+      - id: set-repos
+        run: |
+          if [ "${{ github.events.inputs.repos }}" = "both" ]; then
+            echo 'INCLUDE_PACKAGECLOUD_DEV=1' >> $GITHUB_OUTPUT
+          else
+            echo 'INCLUDE_PACKAGECLOUD_DEV=0' >> $GITHUB_OUTPUT
+          fi
+
   build-image:
-    runs-on: ubuntu-24.04-arm # Explicitly specify the Ubuntu version
+    runs-on: ubuntu-24.04-arm
 
     steps:
       - name: Checkout Repository

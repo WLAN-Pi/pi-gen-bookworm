@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-# Installs a firstboot service intended for the WLAN Pi Go:
+# Installs a firstboot service:
 # 1. Performs root filesystem resize
 # 2. Configures serial console based on available hardware, reboots if console changes
 # Install location: wlanpi1-lite/06-sys-conf/02-run.sh
@@ -48,20 +48,7 @@ ExecStart=/bin/bash -c '
     fi
     
     sync
-    echo "Success: Filesystem resized successfully"
-    
-    # --- Console configuration ---
-    if [ ! -f /boot/firmware/cmdline.txt ]; then
-        echo "Warning: cmdline.txt not found"
-    else
-        cp /boot/firmware/cmdline.txt /boot/firmware/cmdline.txt.firstboot.bak
-        if [ -c /dev/serial0 ]; then
-            sed -i "s/console=ttyAMA3,115200 /console=serial0,115200 /" /boot/firmware/cmdline.txt
-            /bin/systemctl --no-block reboot
-        else
-            echo "Warning: No supported serial device found"
-        fi
-    fi'
+    echo "Success: Filesystem resized successfully"'
 
 [Install]
 WantedBy=multi-user.target

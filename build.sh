@@ -184,6 +184,8 @@ export IMG_DATE="${IMG_DATE:-"$(date +%Y%m%d-%H%M%S)"}"
 export IMG_FILENAME="${IMG_FILENAME:-"${IMG_NAME}-${IMG_DATE}"}"
 export ARCHIVE_FILENAME="${ARCHIVE_FILENAME:-"${IMG_NAME}-${IMG_DATE}"}"
 
+export INCLUDE_PACKAGECLOUD_DEV=${INCLUDE_PACKAGECLOUD_DEV:-1}
+
 export SCRIPT_DIR="${BASE_DIR}/scripts"
 export WORK_DIR="${WORK_DIR:-"${BASE_DIR}/work/${IMG_NAME}"}"
 export DEPLOY_DIR=${DEPLOY_DIR:-"${BASE_DIR}/deploy"}

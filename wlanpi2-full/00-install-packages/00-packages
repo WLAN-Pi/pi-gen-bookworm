@@ -1,1 +1,10 @@
+ufw
+nftables
+wlanpi-webui
+wlanpi-core
+wlanpi-profiler
 wlanpi-fpms
+wlanpi-misc-firmware
+scandump
+tcpdump
+tshark
