@@ -14,9 +14,17 @@ jobs:
   build-prep:
     runs-on: ubuntu-24.04-arm
     steps:
-      - id: set-repos
+      - name: Check if inputs choice exists
         run: |
-          if [ "${{ github.events.inputs.repos }}" = "both" ]; then
+          if [ -z "${{ github.events.inputs.repos }}" ]; then
+            echo "Error: inputs choice not found"
+            exit 1
+          fi
+          echo "REPOS=${{ github.events.inputs.repos }}" >> $GITHUB_ENV
+      - name: Set repos choice variable
+        run: |
+          echo "Repos choice: $REPOS"
+          if [ "$REPOS" = "both" ]; then
             echo 'INCLUDE_PACKAGECLOUD_DEV=1' >> $GITHUB_OUTPUT
           else
             echo 'INCLUDE_PACKAGECLOUD_DEV=0' >> $GITHUB_OUTPUT
