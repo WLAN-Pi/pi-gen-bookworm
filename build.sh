@@ -180,9 +180,9 @@ export RELEASE=${RELEASE:-bookworm} # Don't forget to update stage0/prerun.sh
 export IMG_NAME="${IMG_NAME:-raspios-$RELEASE-$ARCH}"
 
 export USE_QEMU="${USE_QEMU:-0}"
-export IMG_DATE="${IMG_DATE:-"$(date +%Y-%m-%d)"}"
-export IMG_FILENAME="${IMG_FILENAME:-"${IMG_DATE}-${IMG_NAME}"}"
-export ARCHIVE_FILENAME="${ARCHIVE_FILENAME:-"image_${IMG_DATE}-${IMG_NAME}"}"
+export IMG_DATE="${IMG_DATE:-"$(date +%Y%m%d-%H%M%S)"}"
+export IMG_FILENAME="${IMG_FILENAME:-"${IMG_NAME}-${IMG_DATE}"}"
+export ARCHIVE_FILENAME="${ARCHIVE_FILENAME:-"${IMG_NAME}-${IMG_DATE}"}"
 
 export SCRIPT_DIR="${BASE_DIR}/scripts"
 export WORK_DIR="${WORK_DIR:-"${BASE_DIR}/work/${IMG_NAME}"}"
