@@ -13,8 +13,6 @@ on:
 jobs:
   build-prep:
     runs-on: ubuntu-24.04-arm
-    outputs:
-      repos: ${{ steps.set-repos.outputs.repo }}
     steps:
       - id: set-repos
         run: |
