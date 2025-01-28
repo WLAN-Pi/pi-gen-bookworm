@@ -1,5 +1,4 @@
 name: Build wlan(pi-gen) bookworm image
-
 on:
   workflow_dispatch:
     inputs:
@@ -11,7 +10,6 @@ on:
           - both
           - main
         default: both
-
 jobs:
   build-prep:
     runs-on: ubuntu-24.04-arm
@@ -25,14 +23,13 @@ jobs:
           else
             echo 'INCLUDE_PACKAGECLOUD_DEV=0' >> $GITHUB_OUTPUT
           fi
-
   build-image:
     runs-on: ubuntu-24.04-arm
-
+    needs:
+      - build-prep
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
       - name: Set up Dependencies
         run: |
           sudo apt-get update
@@ -60,27 +57,22 @@ jobs:
             binfmt-support \
             systemd-container \
             arch-test
-
       - name: Grant Execution Permissions
         run: chmod +x build.sh
-
       - name: Run Build Script as Root
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
         run: |
           sudo ./build.sh
-
       - name: Get current date
         id: date
         run: echo "date=$(date -u +'%Y%m%dt%H%M%S')" >> $GITHUB_ENV
-
       - name: Archive and Upload Build Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: wlanpi-os~gha${{ env.date }}
           path: deploy/
-
   slack-workflow-status:
     if: ${{ always() && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
     name: Post Workflow Status to Slack
