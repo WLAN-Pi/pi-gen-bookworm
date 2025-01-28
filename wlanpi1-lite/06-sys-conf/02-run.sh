@@ -30,7 +30,7 @@ ExecStart=/bin/bash -c '
     else
         cp /boot/firmware/cmdline.txt /boot/firmware/cmdline.txt.firstboot.bak
         if [ -c /dev/ttyAMA3 ]; then
-            sed -i 's/console=serial0,[0-9]* /console=ttyAMA3,115200 /' /boot/firmware/cmdline.txt
+            sed -i "s/console=serial0,[0-9]* /console=ttyAMA3,115200 /" /boot/firmware/cmdline.txt
         else
             echo "Warning: No supported serial device found"
         fi
@@ -44,9 +44,9 @@ ExecStart=/bin/bash -c '
         exit 1
     fi
 
-    base_device=$(echo "$root_dev" | sed 's/p[0-9]*$//')
+    base_device=$(echo "$root_dev" | sed "s/p[0-9]*$//")
 
-    part_num=$(echo "$root_dev" | grep -o '[0-9]*$')
+    part_num=$(echo "$root_dev" | grep -o "[0-9]*$")
 
     if [ -z "$part_num" ]; then
         echo "Error: Could not determine partition number"
@@ -61,8 +61,7 @@ ExecStart=/bin/bash -c '
     
     sync
     echo "Success: Filesystem resized successfully"
-    /bin/systemctl --no-block reboot
-'
+    /bin/systemctl --no-block reboot'
 
 [Install]
 WantedBy=multi-user.target
