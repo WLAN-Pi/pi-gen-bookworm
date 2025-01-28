@@ -16,12 +16,12 @@ jobs:
     steps:
       - name: Check if inputs choice exists
         run: |
-          CHOICE=${{ github.events.inputs.repos }}
+          CHOICE=${{ github.event.inputs.repos }}
           if [ -z "$CHOICE" ]; then
             echo "Error: inputs choice not found"
             exit 1
           fi
-          echo "REPOS=${{ github.events.inputs.repos }}" >> $GITHUB_ENV
+          echo "REPOS=$CHOICE" >> $GITHUB_ENV
       - name: Set repos choice variable
         run: |
           echo "Repos choice: $REPOS"
