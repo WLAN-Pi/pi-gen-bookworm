@@ -1,5 +1,6 @@
 initramfs-tools
 raspi-firmware
+wlanpi-misc-firmware
 #linux-image-rpi-v8
 #linux-image-rpi-2712
 #linux-headers-rpi-v8
