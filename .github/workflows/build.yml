@@ -16,7 +16,8 @@ jobs:
     steps:
       - name: Check if inputs choice exists
         run: |
-          if [ -z "${{ github.events.inputs.repos }}" ]; then
+          CHOICE=${{ github.events.inputs.repos }}
+          if [ -z "$CHOICE" ]; then
             echo "Error: inputs choice not found"
             exit 1
           fi
