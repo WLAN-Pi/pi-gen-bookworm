@@ -56,7 +56,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wlan-pi-image~gha${{ env.date }}
+          name: wlanpi-os~gha${{ env.date }}
           path: deploy/
 
   slack-workflow-status:
