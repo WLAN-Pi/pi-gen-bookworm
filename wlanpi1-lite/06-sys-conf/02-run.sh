@@ -56,6 +56,18 @@ else
     fi
 fi
 
+# --- MOTD configuration ---
+
+echo "Welcome to WLAN Pi OS!
+
+* This device is for educational, lab, or testing use ONLY.
+* Permanent installs, continuous transmission, & commercial use are PROHIBITED.
+* NO WARRANTY, express or implied.
+* You are solely responsible for complying with all laws and for the consequences of any use. 
+
+By using this device, you agree to these terms.
+" > /etc/motd
+
 echo "=== Completed wlanpi-system-init $(date) ===" ' > /usr/sbin/wlanpi-system-init
 
 chmod +x /usr/sbin/wlanpi-system-init
@@ -64,7 +76,7 @@ CHEOF
 on_chroot << 'CHEOF'
 cat > /etc/systemd/system/wlanpi-system-init.service << 'EOF'
 [Unit]
-Description=Configure Console and Resize Filesystem on First Boot
+Description=Configure console, motd, and resizefs on first boot
 ConditionPathExists=!/var/lib/wlanpi-system-init-service-ran
 After=systemd-udev-settle.service local-fs.target
 Requires=local-fs.target
