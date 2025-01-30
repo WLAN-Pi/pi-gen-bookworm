@@ -4,7 +4,8 @@ wlanpi-webui
 wlanpi-core
 wlanpi-profiler
 wlanpi-misc-firmware
+wlanpi-wipry
 scandump
 tcpdump
 tshark
-
+traceroute
