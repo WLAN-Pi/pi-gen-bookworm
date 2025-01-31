@@ -5,6 +5,7 @@ wlanpi-core
 wlanpi-profiler
 wlanpi-fpms
 wlanpi-hotspot
+wlanpi-common
 wlanpi-grafana
 wlanpi-wipry
 wlanpi-librespeed-cli
