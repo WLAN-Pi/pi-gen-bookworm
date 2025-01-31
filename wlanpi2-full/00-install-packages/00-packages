@@ -5,9 +5,9 @@ wlanpi-core
 wlanpi-profiler
 wlanpi-fpms
 wlanpi-hotspot
-# wlanpi-grafana
-# wlanpi-wipry
-# wlanpi-librespeed-cli
+wlanpi-grafana
+wlanpi-wipry
+wlanpi-librespeed-cli
 wlanpi-misc-firmware
 scandump
 tcpdump

@@ -4,7 +4,7 @@ wlanpi-webui
 wlanpi-core
 wlanpi-profiler
 wlanpi-misc-firmware
-# wlanpi-wipry
+wlanpi-wipry
 scandump
 tcpdump
 tshark
