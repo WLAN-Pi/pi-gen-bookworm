@@ -13,6 +13,8 @@ on:
 jobs:
   build-prep:
     runs-on: ubuntu-24.04-arm
+    outputs:
+      include_packagecloud_dev: ${{ steps.set_vars.outputs.include_packagecloud_dev }}
     steps:
       - name: Check if inputs choice exists
         run: |
@@ -23,12 +25,13 @@ jobs:
           fi
           echo "REPOS=$CHOICE" >> $GITHUB_ENV
       - name: Set repos choice variable
+        id: set_vars
         run: |
           echo "Repos choice: $REPOS"
           if [ "$REPOS" = "both" ]; then
-            echo 'include_packagecloud_dev=1' >> $GITHUB_OUTPUT
+            echo "include_packagecloud_dev=1" >> $GITHUB_OUTPUT
           else
-            echo 'include_packagecloud_dev=0' >> $GITHUB_OUTPUT
+            echo "include_packagecloud_dev=0" >> $GITHUB_OUTPUT
           fi
   build-image:
     runs-on: ubuntu-24.04-arm

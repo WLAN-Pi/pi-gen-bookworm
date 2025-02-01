@@ -1,7 +1,5 @@
 #!/bin/bash -e
 
-include_packagecloud_dev="${include_packagecloud_dev:-1}"
-
 while [ $# -gt 0 ]; do
     case "$1" in
         --include_packagecloud_dev=*)
@@ -14,6 +12,8 @@ while [ $# -gt 0 ]; do
             ;;
     esac
 done
+
+include_packagecloud_dev="${include_packagecloud_dev:-1}"
 
 # shellcheck disable=SC2119
 run_sub_stage()
