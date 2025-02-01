@@ -25,5 +25,7 @@ fi
 
 on_chroot << EOF
 systemctl disable systemd-networkd-wait-online
+systemctl mask systemd-networkd-wait-online.service
 systemctl disable NetworkManager-wait-online.service
+systemctl mask NetworkManager-wait-online.service
 EOF

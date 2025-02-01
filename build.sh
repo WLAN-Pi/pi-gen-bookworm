@@ -1,5 +1,20 @@
 #!/bin/bash -e
 
+include_packagecloud_dev="${include_packagecloud_dev:-1}"
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --include_packagecloud_dev=*)
+            include_packagecloud_dev="${1#*=}"
+            shift
+            ;;
+        *)
+            echo "Unknown parameter: $1"
+            exit 1
+            ;;
+    esac
+done
+
 # shellcheck disable=SC2119
 run_sub_stage()
 {
@@ -184,7 +199,8 @@ export IMG_DATE="${IMG_DATE:-"$(date +%Y%m%d-%H%M%S)"}"
 export IMG_FILENAME="${IMG_FILENAME:-"${IMG_NAME}-${IMG_DATE}"}"
 export ARCHIVE_FILENAME="${ARCHIVE_FILENAME:-"${IMG_NAME}-${IMG_DATE}"}"
 
-export INCLUDE_PACKAGECLOUD_DEV=${INCLUDE_PACKAGECLOUD_DEV:-1}
+export INCLUDE_PACKAGECLOUD_DEV="${include_packagecloud_dev}"
+echo "INCLUDE_PACKAGECLOUD_DEV is ${include_packagecloud_dev}"
 
 export SCRIPT_DIR="${BASE_DIR}/scripts"
 export WORK_DIR="${WORK_DIR:-"${BASE_DIR}/work/${IMG_NAME}"}"
