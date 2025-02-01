@@ -22,3 +22,7 @@ elif [ -d "${ROOTFS_DIR}/var/lib/NetworkManager" ]; then
 		WirelessEnabled=false
 	EOF
 fi
+
+on_chroot << EOF
+systemctl disable systemd-networkd-wait-online
+EOF
