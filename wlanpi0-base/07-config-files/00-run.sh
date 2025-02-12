@@ -5,3 +5,6 @@ copy_overlay /etc/wlanpi-release -o root -g root -m 644
 
 # Add our custom sudoers file
 copy_overlay /etc/sudoers.d/wlanpidump -o root -g root -m 440
+
+# Add a default wpa_supplicant configuration with the control interface disabled
+copy_overlay /etc/wpa_supplicant/wpa_supplicant.conf -o root -g root -m 600
