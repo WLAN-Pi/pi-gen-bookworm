@@ -4,7 +4,6 @@ bash-completion
 python-is-python3
 gpiod
 raspi-gpio
-avahi-daemon
 ca-certificates curl
 fake-hwclock usbutils
 dphys-swapfile
