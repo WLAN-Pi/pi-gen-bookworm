@@ -1,2 +1,3 @@
 systemd-timesyncd
 lsof
+wget
