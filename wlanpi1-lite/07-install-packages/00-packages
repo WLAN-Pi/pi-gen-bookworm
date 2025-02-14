@@ -9,6 +9,3 @@ wlanpi-wipry
 scandump
 tcpdump
 traceroute
-netperf
-fping
-irtt
