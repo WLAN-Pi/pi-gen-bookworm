@@ -6,6 +6,7 @@ Type=oneshot
 ExecStart=/usr/bin/first-boot.sh
 ExecStartPre=/usr/bin/test ! -f /var/lib/first-boot-done
 ExecStartPost=/usr/bin/touch /var/lib/first-boot-done
+RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target
