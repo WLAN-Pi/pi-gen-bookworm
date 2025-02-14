@@ -15,3 +15,4 @@ STAGE_LIST="wlanpi0-base wlanpi1-lite wlanpi2-full"
 USE_QCOW2='0'
 DISABLE_FIRST_BOOT_USER_RENAME=1
 THREADS=$(nproc)
+DPKG_EXCLUDE="libqt5* python3-pyqt5* qt5-* libgtk-3-* libx11* libxcb* libwayland* libwebp* libtiff* libheif* libavif* libjpeg* libpng* libatk* at-spi2* glib-networking* libnotify* adwaita* gsettings* dconf* fontconfig* fonts-* libharfbuzz* librsvg* libpango* libdrm* libgbm* libglvnd* libegl* libgl* mesa* libepoxy* libcolord* libxft* libxext* libxrender* libxrandr* libxinerama* libxfixes* libxdamage* libxcomposite* libxkbcommon* xauth x11-common"
