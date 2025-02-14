@@ -59,5 +59,5 @@ on_chroot << EOF
 DEBIAN_FRONTEND=noninteractive dpkg-reconfigure keyboard-configuration
 EOF
 
-sed -i 's/^#?Storage=.*/Storage=volatile/' "${ROOTFS_DIR}/etc/systemd/journald.conf"
-sed -i 's/^#?RuntimeMaxUse=.*/RuntimeMaxUse=50M/' "${ROOTFS_DIR}/etc/systemd/journald.conf"
+sed -i "s/^#Storage=.*/Storage=volatile/" "${ROOTFS_DIR}/etc/systemd/journald.conf"
+sed -i "s/^#RuntimeMaxUse=.*/RuntimeMaxUse=50M/" "${ROOTFS_DIR}/etc/systemd/journald.conf"
