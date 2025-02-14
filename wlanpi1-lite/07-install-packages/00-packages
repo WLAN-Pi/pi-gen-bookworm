@@ -8,5 +8,7 @@ wlanpi-common
 wlanpi-wipry
 scandump
 tcpdump
-tshark
 traceroute
+netperf
+fping
+irtt
