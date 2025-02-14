@@ -6,18 +6,6 @@ install -m 644 files/50raspi		"${ROOTFS_DIR}/etc/apt/apt.conf.d/"
 
 install -m 644 files/console-setup   	"${ROOTFS_DIR}/etc/default/"
 
-if [ -n "${PUBKEY_SSH_FIRST_USER}" ]; then
-	install -v -m 0700 -o 1000 -g 1000 -d "${ROOTFS_DIR}"/home/"${FIRST_USER_NAME}"/.ssh
-	echo "${PUBKEY_SSH_FIRST_USER}" >"${ROOTFS_DIR}"/home/"${FIRST_USER_NAME}"/.ssh/authorized_keys
-	chown 1000:1000 "${ROOTFS_DIR}"/home/"${FIRST_USER_NAME}"/.ssh/authorized_keys
-	chmod 0600 "${ROOTFS_DIR}"/home/"${FIRST_USER_NAME}"/.ssh/authorized_keys
-fi
-
-if [ "${PUBKEY_ONLY_SSH}" = "1" ]; then
-	sed -i -Ee 's/^#?[[:blank:]]*PubkeyAuthentication[[:blank:]]*no[[:blank:]]*$/PubkeyAuthentication yes/
-s/^#?[[:blank:]]*PasswordAuthentication[[:blank:]]*yes[[:blank:]]*$/PasswordAuthentication no/' "${ROOTFS_DIR}"/etc/ssh/sshd_config
-fi
-
 on_chroot << EOF
 systemctl disable hwclock.sh
 systemctl disable nfs-common
@@ -70,3 +58,6 @@ sed -i "s/PLACEHOLDER//" "${ROOTFS_DIR}/etc/default/keyboard"
 on_chroot << EOF
 DEBIAN_FRONTEND=noninteractive dpkg-reconfigure keyboard-configuration
 EOF
+
+sed -i 's/^#?Storage=.*/Storage=volatile/' "${ROOTFS_DIR}/etc/systemd/journald.conf"
+sed -i 's/^#?RuntimeMaxUse=.*/RuntimeMaxUse=50M/' "${ROOTFS_DIR}/etc/systemd/journald.conf"
