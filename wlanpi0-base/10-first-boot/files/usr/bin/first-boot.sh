@@ -7,7 +7,7 @@ if ! command -v ufw >/dev/null 2>&1; then
 fi
 
 ufw limit ssh
-ufw --force enable
+# ufw --force enable
 raspi-config nonint do_wifi_country US
 
 exit 0
