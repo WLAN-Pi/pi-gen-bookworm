@@ -8,6 +8,6 @@ fi
 
 ufw limit ssh
 ufw --force enable
-wlanpi-reg-domain set US
+raspi-config nonint do_wifi_country US
 
 exit 0
