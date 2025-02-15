@@ -9,3 +9,5 @@ wlanpi-wipry
 scandump
 tcpdump
 traceroute
+# TODO: for demo builds, remove for final
+wlanpi-onsite-server
