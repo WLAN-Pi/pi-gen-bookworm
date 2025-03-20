@@ -32,7 +32,7 @@ EOF
 fi
 
 on_chroot <<EOF
-for GRP in input spi i2c gpio; do
+for GRP in input spi i2c gpio netdev; do
 	groupadd -f -r "\$GRP"
 done
 for GRP in adm dialout cdrom audio users sudo video games plugdev input gpio spi i2c netdev render; do
