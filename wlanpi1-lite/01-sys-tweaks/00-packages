@@ -1,3 +1,4 @@
+raspi-config
 ssh less sudo
 console-setup keyboard-configuration debconf-utils parted
 bash-completion
