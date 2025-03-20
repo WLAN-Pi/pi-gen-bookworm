@@ -1,11 +1,5 @@
 ufw
 nftables
-wlanpi-webui
-wlanpi-core
-wlanpi-profiler
-wlanpi-misc-firmware
-wlanpi-common
-wlanpi-wipry
 scandump
 tcpdump
 traceroute
