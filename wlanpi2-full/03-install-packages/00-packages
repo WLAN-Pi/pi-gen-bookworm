@@ -2,3 +2,17 @@ systemd-timesyncd
 lsof
 wget
 avahi-daemon
+ufw
+nftables
+scandump
+tcpdump
+tshark
+cockpit
+cockpit-packagekit
+cockpit-storaged
+cockpit-navigator
+aircrack-ng
+wavemon
+nmap
+traceroute
+gpsd
