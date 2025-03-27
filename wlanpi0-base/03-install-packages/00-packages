@@ -1,4 +1,0 @@
-systemd-timesyncd
-lsof
-wget
-avahi-daemon
