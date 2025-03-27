@@ -1,8 +1,6 @@
 netbase
 wpasupplicant 
-wireless-tools
 raspberrypi-net-mods
 network-manager
-net-tools
 iperf
 wavemon
