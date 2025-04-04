@@ -115,7 +115,7 @@ jobs:
           echo "Created zips directory"
 
           LITE=$(find processed -name "wlanpi-os-lite-*.img.gz" -print -quit)
-          if [ -n "$LITE" ]; 
+          if [ -n "$LITE" ]; then
             echo "lite image file found: $LITE"
             LITE_BASE=$(basename "$LITE")
             LITE_ZIP="${LITE_BASE%.img.gz}.zip"
