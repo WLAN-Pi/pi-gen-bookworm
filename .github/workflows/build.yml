@@ -163,8 +163,8 @@ jobs:
           echo "Checking deploy directory contents:"
           ls -la deploy/ || echo "Cannot list deploy directory"
 
-          cp -v zips/*.zip deploy/
-          cp -v zips/*.sha256 deploy/
+          sudo cp -v zips/*.zip deploy/
+          sudo cp -v zips/*.sha256 deploy/
           
           echo "Checking deploy directory contents:"
           ls -la deploy/ || echo "Cannot list deploy directory"
