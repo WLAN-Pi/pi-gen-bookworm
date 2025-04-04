@@ -141,7 +141,7 @@ jobs:
           fi
 
           mkdir -p deploy
-          
+
           cp zips/*.zip deploy/
           cp zips/*.sha256 deploy/
           
@@ -159,7 +159,7 @@ jobs:
           name: wlanpi-os-lite-checksum-${{ env.version }}
           path: processed/wlanpi-os-lite-*.img.gz.sha256
 
-      - name: Upload lite info
+      - name: Upload lite info file
         uses: actions/upload-artifact@v4
         with:
           name: wlanpi-os-lite-info-${{ env.version }}
@@ -177,19 +177,19 @@ jobs:
           name: wlanpi-os-full-checksum-${{ env.version }}
           path: processed/wlanpi-os-full-*.img.gz.sha256
 
-      - name: Upload full info
+      - name: Upload full info file
         uses: actions/upload-artifact@v4
         with:
           name: wlanpi-os-full-info-${{ env.version }}
           path: processed/wlanpi-os-full-*.info
 
-      - name: Upload all build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: wlanpi-os-all-build-artifacts-${{ env.version }}
-          path: deploy/
+      # - name: Upload all build artifacts
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: wlanpi-os-all-build-artifacts-${{ env.version }}
+      #     path: deploy/
 
-      - name: Create pre-release from default branch
+      - name: Create pre-release when we're running from the default branch
         if: ${{ github.event.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
         uses: "joshschmelzle/action-automatic-releases@1c60c2dcfeb5382b81099310bdb4a376dc7753a0"
         with:
@@ -203,7 +203,7 @@ jobs:
             processed/*.img.gz.sha256
             processed/*.info
 
-      - name: Upload logs
+      - name: Upload any logs found
         if: always()
         uses: actions/upload-artifact@v4
         with:
