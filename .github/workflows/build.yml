@@ -71,14 +71,81 @@ jobs:
           GITHUB_REF_NAME: ${{ github.ref_name }}
         run: |
           sudo ./build.sh
-      - name: Get current date
-        id: date
-        run: echo "date=$(date -u +'%Y%m%dt%H%M%S')" >> $GITHUB_ENV
-      - name: Archive and Upload Build Artifacts
-        if: always()
+      - name: Calculate version and checksums
+        id: vercheck
+        run: |
+          VERSION=$(date '+%Y.%m.%d')-$(git rev-parse --short HEAD)-$GITHUB_RUN_NUMBER
+          echo "version=$VERSION" >> $GITHUB_ENV
+          mkdir -p processed
+          for IMG in deploy/*.img.gz; do
+            if [ -f "$IMG" ]; then
+              BASE=$(basename "$IMG")
+              if [[ "$BASE" == *"-lite.img.gz" ]]; then
+                TYPE="lite"
+              elif [[ "$BASE" == *"-full.img.gz" ]]; then
+                TYPE="full"
+              else
+                continue
+              fi
+
+              NEW="wlanpi-os-$TYPE-$VERSION.img.gz"
+              cp "$IMG" "processed/$NEW"
+
+              INFO="${IMG%.img.gz}.info"
+              if [ -f "$INFO" ]; then
+                NEW_INFO="wlanpi-os-$TYPE-$VERSION.info"
+                cp "$INFO" "processed/$NEW_INFO"
+              fi
+
+              pushd processed
+              sha256sum "$NEW" > "$NEW.sha256"
+              md5sum "$NEW" > "$NEW.md5"
+              popd
+            fi
+          done
+
+          echo "Processed:"
+          ls -la processed/
+      - name: Upload WLAN Pi Lite Image
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os~gha${{ env.date }}
+          name: wlanpi-os-lite-${{ env.version }}
+          path: processed/wlanpi-os-lite-*.img.gz
+
+      - name: Upload WLAN Pi Lite Info
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-lite-info-${{ env.version }}
+          path: processed/wlanpi-os-lite-*.info
+
+      - name: Upload WLAN Pi Lite Checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-lite-checksums-${{ env.version }}
+          path: processed/wlanpi-os-lite-*.{sha256,md5}
+
+      - name: Upload WLAN Pi Full Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-full-${{ env.version }}
+          path: processed/wlanpi-os-full-*.img.gz
+
+      - name: Upload WLAN Pi Full Info
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-full-info-${{ env.version }}
+          path: processed/wlanpi-os-full-*.info
+
+      - name: Upload WLAN Pi Full Checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-full-checksums-${{ env.version }}
+          path: processed/wlanpi-os-full-*.{sha256,md5}
+
+      - name: Archive and Upload All Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-original-${{ env.version }}
           path: deploy/
   slack-workflow-status:
     if: ${{ always() && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
