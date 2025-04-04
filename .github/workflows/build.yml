@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       repos:
-        descriptions: Repos to include
+        descriptions: pkg repos to include
         required: true
         type: choice
         options:
@@ -14,15 +14,15 @@ jobs:
   build-prep:
     runs-on: ubuntu-24.04-arm
     steps:
-      - name: Check if inputs choice exists
+      - name: Check if pkg repos input choice was made
         run: |
           CHOICE=${{ github.event.inputs.repos }}
           if [ -z "$CHOICE" ]; then
-            echo "Error: inputs choice not found"
+            echo "Error: repo choice not detected"
             exit 1
           fi
           echo "REPOS=$CHOICE" >> $GITHUB_ENV
-      - name: Set repos choice variable
+      - name: Set pkg repos choice variable
         run: |
           echo "Repos choice: $REPOS"
           if [ "$REPOS" = "both" ]; then
@@ -35,7 +35,7 @@ jobs:
     needs:
       - build-prep
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
       - name: Set up Dependencies
         run: |
@@ -105,43 +105,43 @@ jobs:
 
           echo "Processed:"
           ls -la processed/
-      - name: Upload WLAN Pi Lite Image
+      - name: Upload lite image
         uses: actions/upload-artifact@v4
         with:
           name: wlanpi-os-lite-${{ env.version }}
           path: processed/wlanpi-os-lite-*.img.gz
 
-      - name: Upload WLAN Pi Lite Info
+      - name: Upload lite image checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-lite-checksum-${{ env.version }}
+          path: processed/wlanpi-os-lite-*.img.gz.*sum
+
+      - name: Upload lite info
         uses: actions/upload-artifact@v4
         with:
           name: wlanpi-os-lite-info-${{ env.version }}
           path: processed/wlanpi-os-lite-*.info
 
-      - name: Upload WLAN Pi Lite Checksum
-        uses: actions/upload-artifact@v4
-        with:
-          name: wlanpi-os-lite-sha256-${{ env.version }}
-          path: processed/wlanpi-os-lite-*.sha256
-
-      - name: Upload WLAN Pi Full Image
+      - name: Upload full image
         uses: actions/upload-artifact@v4
         with:
           name: wlanpi-os-full-${{ env.version }}
           path: processed/wlanpi-os-full-*.img.gz
 
-      - name: Upload WLAN Pi Full Info
+      - name: Upload full image checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-full-checksum-${{ env.version }}
+          path: processed/wlanpi-os-full-*.img.gz.*sum
+
+      - name: Upload full info
         uses: actions/upload-artifact@v4
         with:
           name: wlanpi-os-full-info-${{ env.version }}
           path: processed/wlanpi-os-full-*.info
 
-      - name: Upload WLAN Pi Full Checksum
-        uses: actions/upload-artifact@v4
-        with:
-          name: wlanpi-os-full-sha256-${{ env.version }}
-          path: processed/wlanpi-os-full-*.sha256
-
-      - name: Archive and Upload All Build Artifacts
+      - name: Upload all build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: wlanpi-os-original-${{ env.version }}
@@ -151,7 +151,7 @@ jobs:
     name: Post Workflow Status to Slack
     needs:
       - build-image
-    runs-on: 'ubuntu-22.04'
+    runs-on: 'ubuntu-24.04'
     steps:
       - name: Slack Workflow Notification
         uses: Gamesight/slack-workflow-status@master
