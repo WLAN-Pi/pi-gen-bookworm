@@ -99,7 +99,6 @@ jobs:
 
               pushd processed
               sha256sum "$NEW" > "$NEW.sha256"
-              md5sum "$NEW" > "$NEW.md5"
               popd
             fi
           done
@@ -118,11 +117,11 @@ jobs:
           name: wlanpi-os-lite-info-${{ env.version }}
           path: processed/wlanpi-os-lite-*.info
 
-      - name: Upload WLAN Pi Lite Checksums
+      - name: Upload WLAN Pi Lite Checksum
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-lite-checksums-${{ env.version }}
-          path: processed/wlanpi-os-lite-*.{sha256,md5}
+          name: wlanpi-os-lite-sha256-${{ env.version }}
+          path: processed/wlanpi-os-lite-*.sha256
 
       - name: Upload WLAN Pi Full Image
         uses: actions/upload-artifact@v4
@@ -136,11 +135,11 @@ jobs:
           name: wlanpi-os-full-info-${{ env.version }}
           path: processed/wlanpi-os-full-*.info
 
-      - name: Upload WLAN Pi Full Checksums
+      - name: Upload WLAN Pi Full Checksum
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-full-checksums-${{ env.version }}
-          path: processed/wlanpi-os-full-*.{sha256,md5}
+          name: wlanpi-os-full-sha256-${{ env.version }}
+          path: processed/wlanpi-os-full-*.sha256
 
       - name: Archive and Upload All Build Artifacts
         uses: actions/upload-artifact@v4
