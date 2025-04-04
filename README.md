@@ -4,6 +4,7 @@ Tool used to create WLAN Pi OS images for bookworm.
 
 ## WLAN Pi OS versioning
 
+```
 Release version format: YYYY.MM.DD
 Point releases: Rare, using YYYY-MM-DD.P format
 Codenames: TODO (coffee themes?)
@@ -11,15 +12,18 @@ Pre-release markers: ~dev, ~rc
 Development track: Infrequent
 Testing approach: ~dev releases until an ~rc is cut
 Release cadence: Irregular (as needed)
+```
 
 Examples:
 
+```
 2025.04.04~dev.1  (First development build on April 4, 2025)
 2025.04.04~dev.2  (Second development build on same day)
 2025.04.04~rc.1   (First release candidate)
 [Testing period of 6 days]
 2025.04.04        (Final release promoted on April 10)
 2025.04.04.1      (Point release/hotfix if needed)
+```
 
 ## WLAN Pi OS versioning guidelines
 
