@@ -140,6 +140,8 @@ jobs:
             popd
           fi
 
+          mkdir -p deploy
+          
           cp zips/*.zip deploy/
           cp zips/*.sha256 deploy/
           
