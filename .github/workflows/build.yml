@@ -10,6 +10,8 @@ on:
           - both
           - main
         default: both
+permissions:
+  contents: write
 jobs:
   build-prep:
     runs-on: ubuntu-24.04-arm
@@ -105,6 +107,44 @@ jobs:
 
           echo "Processed:"
           ls -la processed/
+
+      - name: Create zips
+        run: |
+          mkdir -p zips
+
+          LITE=$(find processed -name "wlanpi-os-lite-*.img.gz" -print -quit)
+          if [ -n "$LITE" ]; then
+            LITE_BASE=$(basename "$LITE")
+            LITE_ZIP="${LITE_BASE%.img.gz}.zip"
+
+            pushd processed
+            zip "../zips/$LITE_ZIP" "$(basename "$LITE")"
+            popd
+
+            pushd zips
+            sha256sum "$LITE_ZIP" > "$LITE_ZIP.sha256"
+            popd
+          fi
+
+          FULL=$(find processed -name "wlanpi-os-full-*.img.gz" -print -quit)
+          if [ -n "$FULL" ]; then
+            FULL_BASE=$(basename "$FULL")
+            FULL_ZIP_NAME="${FULL_BASE%.img.gz}.zip"
+            
+            pushd processed
+            zip "../zips/$FULL_ZIP_NAME" "$(basename "$FULL")"
+            popd
+            
+            pushd zips
+            sha256sum "$FULL_ZIP_NAME" > "$FULL_ZIP_NAME.sha256"
+            popd
+          fi
+
+          cp zips/*.zip deploy/
+          cp zips/*.sha256 deploy/
+          
+          echo "Created these zip files for pre-release:"
+          ls -la zips/
       - name: Upload lite image
         uses: actions/upload-artifact@v4
         with:
@@ -155,15 +195,17 @@ jobs:
           automatic_release_tag: ${{ env.version }}
           prerelease: true
           files: |
-            deploy/*.img.gz
-            deploy/*.img.gz.sha256
-            deploy/*.info
+            deploy/*.zip
+            deploy/*.zip.sha256
+            processed/*.img.gz
+            processed/*.img.gz.sha256
+            processed/*.info
 
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-buildlogs-${{ env.VERSION }}
+          name: wlanpi-os-buildlogs-${{ env.version }}
           path: deploy/*.log
 
   slack-workflow-status:
