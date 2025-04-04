@@ -110,29 +110,37 @@ jobs:
 
       - name: Create zips
         run: |
+          echo "Starting script in directory: $(pwd)"
           mkdir -p zips
+          echo "Created zips directory"
 
           LITE=$(find processed -name "wlanpi-os-lite-*.img.gz" -print -quit)
-          if [ -n "$LITE" ]; then
+          if [ -n "$LITE" ]; 
+            echo "lite image file found: $LITE"
             LITE_BASE=$(basename "$LITE")
             LITE_ZIP="${LITE_BASE%.img.gz}.zip"
+            echo "Creating zip file: $LITE_ZIP"
 
             pushd processed
             zip "../zips/$LITE_ZIP" "$(basename "$LITE")"
+            echo "Zip creation exit code: $?"
             popd
 
             pushd zips
+            echo "Creating SHA256 sum for lite image"
             sha256sum "$LITE_ZIP" > "$LITE_ZIP.sha256"
             popd
           fi
 
           FULL=$(find processed -name "wlanpi-os-full-*.img.gz" -print -quit)
           if [ -n "$FULL" ]; then
+            echo "full image file found: $LITE"
             FULL_BASE=$(basename "$FULL")
             FULL_ZIP_NAME="${FULL_BASE%.img.gz}.zip"
             
             pushd processed
             zip "../zips/$FULL_ZIP_NAME" "$(basename "$FULL")"
+            echo "Zip creation exit code: $?"
             popd
             
             pushd zips
@@ -140,11 +148,27 @@ jobs:
             popd
           fi
 
-          mkdir -p deploy
+          echo "Checking deploy directory permissions before creating"
+          ls -la . | grep deploy || echo "No deploy directory found yet"
 
-          cp zips/*.zip deploy/
-          cp zips/*.sha256 deploy/
+          mkdir -p deploy
+          echo "Created deploy directory, checking permissions:"
+          ls -la . | grep deploy
+          echo "User and groups:"
+          id
+
+          echo "Files in zips directory:"
+          ls -la zips/
+
+          echo "Checking deploy directory contents:"
+          ls -la deploy/ || echo "Cannot list deploy directory"
+
+          cp -v zips/*.zip deploy/
+          cp -v zips/*.sha256 deploy/
           
+          echo "Checking deploy directory contents:"
+          ls -la deploy/ || echo "Cannot list deploy directory"
+
           echo "Created these zip files for pre-release:"
           ls -la zips/
       - name: Upload lite image
