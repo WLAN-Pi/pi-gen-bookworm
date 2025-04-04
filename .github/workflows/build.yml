@@ -115,7 +115,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wlanpi-os-lite-checksum-${{ env.version }}
-          path: processed/wlanpi-os-lite-*.img.gz.*sum
+          path: processed/wlanpi-os-lite-*.img.gz.sha256
 
       - name: Upload lite info
         uses: actions/upload-artifact@v4
@@ -133,7 +133,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wlanpi-os-full-checksum-${{ env.version }}
-          path: processed/wlanpi-os-full-*.img.gz.*sum
+          path: processed/wlanpi-os-full-*.img.gz.sha256
 
       - name: Upload full info
         uses: actions/upload-artifact@v4
@@ -146,6 +146,26 @@ jobs:
         with:
           name: wlanpi-os-original-${{ env.version }}
           path: deploy/
+
+      - name: Create pre-release from default branch
+        if: ${{ github.event.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+        uses: "joshschmelzle/action-automatic-releases@1c60c2dcfeb5382b81099310bdb4a376dc7753a0"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: ${{ env.version }}
+          prerelease: true
+          files: |
+            deploy/*.img.gz
+            deploy/*.img.gz.sha256
+            deploy/*.info
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-buildlogs-${{ env.VERSION }}
+          path: deploy/*.log
+
   slack-workflow-status:
     if: ${{ always() && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
     name: Post Workflow Status to Slack
