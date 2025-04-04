@@ -2,6 +2,116 @@
 
 Tool used to create WLAN Pi OS images for bookworm.
 
+## WLAN Pi OS versioning
+
+Release version format: YYYY.MM.DD
+Point releases: Rare, using YYYY-MM-DD.P format
+Codenames: TODO (coffee themes?)
+Pre-release markers: ~dev, ~rc
+Development track: Infrequent
+Testing approach: ~dev releases until an ~rc is cut
+Release cadence: Irregular (as needed)
+
+Examples:
+
+2025.04.04~dev.1  (First development build on April 4, 2025)
+2025.04.04~dev.2  (Second development build on same day)
+2025.04.04~rc.1   (First release candidate)
+[Testing period of 6 days]
+2025.04.04        (Final release promoted on April 10)
+2025.04.04.1      (Point release/hotfix if needed)
+
+## WLAN Pi OS versioning guidelines
+
+### Version Structure
+
+- Format: YYYY.MM.DD[~type.sequence][.point]
+  - YYYY.MM.DD: Base date (e.g., 2025.04.04)
+  - ~type: Optional pre-release type (~dev or ~rc)
+  - .seq: Sequential number for same-day builds (1, 2, 3...)
+  - .P: Optional point release number for hotfixes (rare)
+
+### Version Types
+
+1. Development builds: `YYYY.MM.DD~dev.seq`
+   - For developer testing and feature development
+   - Example: 2025.04.04~dev.1
+
+2. Release candidates: `YYYY.MM.DD~rc.seq`
+   - For wider testing before final release
+   - Example: 2025.04.04~rc.1
+
+3. Final releases: `YYYY.MM.DD`
+   - Official stable releases
+   - Example: 2025.04.04
+
+4. Point releases: `YYYY.MM.DD.P`
+   - For emergency fixes or minor updates same day
+   - Example: 2025.04.04.1
+
+## Implementation Requirements
+
+1. Build system must:
+
+   - Use current ISO 8601 date for the base version separated by periods.
+   - Track and increment sequence numbers for same-day builds through git tags replacing the tilde with an underscore to avoid conflicts with git branch names.
+   - Apply correct type marker based on build intention
+
+2. Release promotion path:
+
+   - Development → RC → Final Release
+   - Final RC build should be promotable to final Release without rebuild
+   - No mechanism to promote from ~dev to ~rc. Promotion mechanism for ~rc to final only.
+   - Mechanism to strip ~rc marker when promoting to release
+
+3. File naming convention:
+
+   - wlanpi-os-TYPE-VERSION.img.gz
+   - Example: wlanpi-os-lite-2025.04.04~rc.1.img.gz
+   - Example: wlanpi-os-full-2025.04.04~rc.1.img.gz
+
+4. Version identification:
+
+   - Include version string in the OS itself
+   - Provide /etc/wlanpi-release with contents VERSION=<version> with no trailing white characters and no quotes around <version>.
+
+5. Release notes
+
+   - Document changes between versions into automatically created release notes.
+   - Downstream files included need to be stored in an wlanpi-os-TYPE-VERISON.packages text file and used to compare against.
+   - Clarify which previous version a build is based on
+   - Include SHA checksums for verification of every file generated for all files in a digest file using the filename wlanpi-os-TYPE-VERSION.digests
+
+## Version Management
+
+- Track sequence numbers via git tags
+- Store latest sequence number for each build type in the git tag
+- Reset sequence numbers at date change
+- Use GitHub releases and tags for version management and tracking between releases and release types.
+
+## GHA example ideas
+
+```
+release_type:
+  description: 'Release type'
+  required: true
+  default: 'dev'
+  type: choice
+  options:
+    - dev
+    - rc
+    - promote
+    - final
+    - point
+
+point_base:
+  description: 'Base version for point release (e.g., 2025.04.04)'
+  required: false
+  type: string
+```
+
+## Original Readme
+
 Tool used to create Raspberry Pi OS images, and custom images based on Raspberry Pi OS,
 which was in turn derived from the Raspbian project.
 
