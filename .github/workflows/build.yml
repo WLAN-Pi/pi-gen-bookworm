@@ -144,7 +144,7 @@ jobs:
       - name: Upload all build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-original-${{ env.version }}
+          name: wlanpi-os-all-build-artifacts-${{ env.version }}
           path: deploy/
 
       - name: Create pre-release from default branch
