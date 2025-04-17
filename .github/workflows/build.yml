@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       repos:
-        descriptions: pkg repos to include
+        descriptions: Package cloud repos to include (default is both dev/main)
         required: true
         type: choice
         options:
