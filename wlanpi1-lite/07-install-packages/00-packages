@@ -3,3 +3,4 @@ nftables
 scandump
 tcpdump
 traceroute
+mtr-tiny
