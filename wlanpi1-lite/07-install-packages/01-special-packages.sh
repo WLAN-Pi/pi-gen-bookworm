@@ -5,7 +5,7 @@ on_chroot << EOF
 echo "wireshark-common wireshark-common/install-setuid boolean true" | debconf-set-selections
 
 # Install tshark
-apt install -y tshark
+apt install -y tshark wireshark-common
 
 apt install -y netperf fping irtt
 apt install -y --no-install-recommends flent
