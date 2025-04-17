@@ -50,7 +50,10 @@ rm -f "${ROOTFS_DIR}"/usr/share/icons/*/icon-theme.cache
 
 rm -f "${ROOTFS_DIR}/var/lib/dbus/machine-id"
 
-true > "${ROOTFS_DIR}/etc/machine-id"
+# true > "${ROOTFS_DIR}/etc/machine-id"
+
+echo -n > "${ROOTFS_DIR}/etc/machine-id"
+chmod 444 "${ROOTFS_DIR}/etc/machine-id"
 
 ln -nsf /proc/mounts "${ROOTFS_DIR}/etc/mtab"
 
