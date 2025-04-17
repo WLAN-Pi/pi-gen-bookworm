@@ -11,10 +11,10 @@ on:
           - main
         default: both
       codename:
-        description: 'Release codename (e.g., l-theanine)'
+        description: 'Release codename (e.g., theanine)'
         required: false
         type: string
-        default: "l-theanine"
+        default: "theanine"
       release_type:
         description: 'Release type'
         required: true
