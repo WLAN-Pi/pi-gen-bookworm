@@ -59,6 +59,7 @@ copy_overlay /etc/avahi/avahi-daemon.conf -o root -g root -m 644
 
 # Copy .vimrc file
 install -m 644 files/.vimrc "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.vimrc"
+install -m 644 files/.tmux.conf "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.tmux.conf"
 
 on_chroot << EOF
 chown ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.vimrc
