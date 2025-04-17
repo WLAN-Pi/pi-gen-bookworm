@@ -56,3 +56,6 @@ copy_overlay /etc/wpa_supplicant/wpa_supplicant.conf -o root -g root -m 600
 
 # Copy config file: avahi-daemon
 copy_overlay /etc/avahi/avahi-daemon.conf -o root -g root -m 644
+
+# Copy .vimrc file
+copy_overlay /home/wlanpi/.vimrc -o wlanpi -g wlanpi -m 644
