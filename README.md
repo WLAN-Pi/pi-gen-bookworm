@@ -9,7 +9,7 @@ Format: `YYYY.MM.DD[~type.sequence][.point]-CODENAME`
 ```
 Release version format: YYYY.MM.DD-codename
 Point releases: Rare, using YYYY-MM-DD.P-codename format
-Codenames: Coffee themed starting with 'Affogato' but with 'theanine' as default for dev.
+Codenames: Coffee themed starting with 'Affogato' for releases. Development releases should be using 'theanine' as default codename.
 Pre-release markers: ~dev, ~rc
 Dev builds: YYYY.MM.DD~dev.seq-codename
 Release candidates: YYYY.MM.DD~rc.seq-codename
@@ -25,12 +25,12 @@ Stored in `/etc/wlanpi-codename` and `/etc/os-release`
 Examples:
 
 ```
-2025.04.04~dev.1  (First development build on April 4, 2025)
-2025.04.04~dev.2  (Second development build on same day)
-2025.04.04~rc.1   (First release candidate)
+2025.04.17~dev.1  (First development build on April 4, 2025)
+2025.04.17~dev.2  (Second development build on same day)
+2025.04.17~rc.1   (First release candidate)
 [Testing period of 6 days]
-2025.04.04        (Final release promoted on April 10)
-2025.04.04.1      (Point release/hotfix if needed)
+2025.04.17        (Final release promoted on April 10)
+2025.04.17.1      (Point release/hotfix if needed)
 ```
 
 ## WLAN Pi OS versioning guidelines
@@ -38,7 +38,7 @@ Examples:
 ### Version Structure
 
 - Format: YYYY.MM.DD[~type.sequence][.point]
-  - YYYY.MM.DD: Base date (e.g., 2025.04.04)
+  - YYYY.MM.DD: Base date (e.g., 2025.04.17)
   - ~type: Optional pre-release type (~dev or ~rc)
   - .seq: Sequential number for same-day builds (1, 2, 3...)
   - .P: Optional point release number for hotfixes (rare)
@@ -47,19 +47,19 @@ Examples:
 
 1. Development builds: `YYYY.MM.DD~dev.seq`
    - For developer testing and feature development
-   - Example: 2025.04.04~dev.1
+   - Example: 2025.04.17~dev.1
 
 2. Release candidates: `YYYY.MM.DD~rc.seq`
    - For wider testing before final release
-   - Example: 2025.04.04~rc.1
+   - Example: 2025.04.17~rc.1
 
 3. Final releases: `YYYY.MM.DD`
    - Official stable releases
-   - Example: 2025.04.04
+   - Example: 2025.04.17
 
 4. Point releases: `YYYY.MM.DD.P`
    - For emergency fixes or minor updates same day
-   - Example: 2025.04.04.1
+   - Example: 2025.04.17.1
 
 ## Implementation Requirements
 
@@ -80,8 +80,8 @@ Examples:
 3. File naming convention:
 
    - wlanpi-os-TYPE-VERSION.img.gz
-   - Example: wlanpi-os-lite-2025.04.04~rc.1.img.gz
-   - Example: wlanpi-os-full-2025.04.04~rc.1.img.gz
+   - Example: wlanpi-os-lite-2025.04.17~rc.1.img.gz
+   - Example: wlanpi-os-full-2025.04.17~rc.1.img.gz
 
 4. Version identification:
 
@@ -118,7 +118,7 @@ release_type:
     - point
 
 point_base:
-  description: 'Base version for point release (e.g., 2025.04.04)'
+  description: 'Base version for point release (e.g., 2025.04.17)'
   required: false
   type: string
 ```
