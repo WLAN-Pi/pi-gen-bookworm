@@ -418,12 +418,21 @@ jobs:
       #     name: wlanpi-os-all-build-artifacts-${{ env.version }}
       #     path: deploy/
 
-      - name: Create pre-release if we're running from the default branch
+      - name: Prep Create GitHub pre-release if we're running from the default branch
+        if: ${{ github.event.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+        run: |
+          # Get version but replace tildes with underscores for git tag compatibility
+          VERSION="${{ env.version }}"
+          GIT_TAG=$(echo "$VERSION" | sed 's/~/\_/g')
+          echo "Using git tag: $GIT_TAG"
+          echo "git_tag=$GIT_TAG" >> $GITHUB_ENV
+          
+      - name: Create GitHub pre-release
         if: ${{ github.event.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
         uses: "joshschmelzle/action-automatic-releases@1c60c2dcfeb5382b81099310bdb4a376dc7753a0"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: ${{ env.version }}
+          automatic_release_tag: ${{ env.git_tag }}
           prerelease: true
           files: |
             deploy/*.zip
