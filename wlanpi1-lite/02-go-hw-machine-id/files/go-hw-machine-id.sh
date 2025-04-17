@@ -15,6 +15,7 @@ Description:
     1. Reads serial number from /dev/ttyAMA0
     2. Stores base64 encoded serial number at /home/.device-info/serial
     3. Sets the SHA-256 hash of the raw serial number at /etc/machine-id
+    4. Retrieves other device-info from the serial port
 
 Usage:
     sudo ./go-hw-machine-id.sh [OPTIONS]
@@ -25,8 +26,11 @@ Options:
 
 Files:
     /var/log/go-hw-id-encoder.log    - Log file with operation details
-    /home/.device-info/serial  - Base64 encoded serial number storage
+    /home/.device-info/serial        - Base64 encoded serial number storage
     /home/.device-info/productid     - Product ID storage
+    /home/.device-info/firmware      - Firmware version
+    /home/.device-info/revision      - Hardware revision
+    /home/.device-info/model         - "Go" if productid == 14
     /etc/machine-id                  - System machine ID
 
 Examples:
@@ -69,6 +73,7 @@ SERIAL_FILE="${DEVICE_INFO_DIR}/serial"
 PRODUCT_FILE="${DEVICE_INFO_DIR}/productid"
 FIRMWARE_FILE="${DEVICE_INFO_DIR}/firmware"
 REVISION_FILE="${DEVICE_INFO_DIR}/revision"
+MODEL_FILE="${DEVICE_INFO_DIR}/model"
 TIMEOUT=2
 
 log() {
@@ -175,7 +180,14 @@ if [ -z "$SERIAL_NUMBER" ]; then
     chmod 644 "$PRODUCT_FILE"
     set_immutable "$PRODUCT_FILE"
     log "Saved product id to $PRODUCT_FILE ..."
-    
+
+    if [ "$PRODUCT_ID" = "14" ]; then
+        echo "Go" > "$MODEL_FILE"
+        chmod 644 "$MODEL_FILE"
+        set_immutable "$MODEL_FILE"
+        log "Device identified as Go model, information saved to $MODEL_FILE ..."
+    fi
+
     log "Extracted firmware: $FIRMWARE ..."
     echo -n "$FIRMWARE" > "$FIRMWARE_FILE"
     chmod 644 "$FIRMWARE_FILE"
