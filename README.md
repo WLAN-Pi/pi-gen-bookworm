@@ -4,15 +4,23 @@ Tool used to create WLAN Pi OS images for bookworm.
 
 ## WLAN Pi OS versioning
 
+Format: `YYYY.MM.DD[~type.sequence][.point]-CODENAME`
+
 ```
-Release version format: YYYY.MM.DD
-Point releases: Rare, using YYYY-MM-DD.P format
-Codenames: TODO (coffee themes?)
+Release version format: YYYY.MM.DD-codename
+Point releases: Rare, using YYYY-MM-DD.P-codename format
+Codenames: Coffee themed starting with 'Affogato' but with 'theanine' as default for dev.
 Pre-release markers: ~dev, ~rc
+Dev builds: YYYY.MM.DD~dev.seq-codename
+Release candidates: YYYY.MM.DD~rc.seq-codename
 Development track: Infrequent
 Testing approach: ~dev releases until an ~rc is cut
 Release cadence: Irregular (as needed)
 ```
+
+Codenames:
+
+Stored in `/etc/wlanpi-codename` and `/etc/os-release`
 
 Examples:
 
@@ -67,6 +75,7 @@ Examples:
    - Final RC build should be promotable to final Release without rebuild
    - No mechanism to promote from ~dev to ~rc. Promotion mechanism for ~rc to final only.
    - Mechanism to strip ~rc marker when promoting to release
+   - Workflow allows current ISO 8601 date for base version by default, but allows a different base date which enables promoting an RC to release from any date to maintain the same versioning structure and format.
 
 3. File naming convention:
 

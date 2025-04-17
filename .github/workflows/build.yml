@@ -34,6 +34,10 @@ on:
         description: 'RC tag to promote (e.g., 2025.04.17_rc.1)'
         required: false
         type: string
+      base_date:
+        description: 'Base date for version (e.g., 2025.04.04) - defaults to today'
+        required: false
+        type: string
 permissions:
   contents: write
 jobs:
@@ -53,13 +57,18 @@ jobs:
             LATEST_RC="${{ github.event.inputs.rc_tag }}"
             echo "Using explicitly provided RC tag: $LATEST_RC"
           else
-            BASE_VERSION=$(date '+%Y.%m.%d')
+            if [ -n "${{ github.event.inputs.base_date }}" ]; then
+              BASE_VERSION="${{ github.event.inputs.base_date }}"
+              echo "Looking for RC with base date: $BASE_VERSION"
+            else
+              BASE_VERSION=$(date '+%Y.%m.%d')
+              echo "Looking for RC with today's date: $BASE_VERSION"
+            fi
             LATEST_RC=$(git tag -l "${BASE_VERSION}_rc.*" | sort -V | tail -n1)
             if [ -z "$LATEST_RC" ]; then
-              echo "Error: No RC found to promote for today's date"
+              echo "Error: No RC found for date $BASE_VERSION"
               exit 1
             fi
-            echo "Automatically detected RC tag: $LATEST_RC"
           fi
 
           RC_VERSION=$(echo "$LATEST_RC" | sed 's/_rc\.[0-9]*$//')
@@ -177,7 +186,13 @@ jobs:
         run: |
           CODENAME="${{ github.event.inputs.codename }}"
           echo "codename=$CODENAME" >> $GITHUB_OUTPUT
-          BASE_VERSION=$(date '+%Y.%m.%d')
+          if [ -n "${{ github.event.inputs.base_date }}" ]; then
+            BASE_VERSION="${{ github.event.inputs.base_date }}"
+            echo "Using specified base date: $BASE_VERSION"
+          else
+            BASE_VERSION=$(date '+%Y.%m.%d')
+            echo "Using today's date: $BASE_VERSION"
+          fi
           RELEASE_TYPE="${{ github.event.inputs.release_type }}"
           if [ "$RELEASE_TYPE" = "point" ]; then
             POINT_BASE="${{ github.event.inputs.point_base }}"
