@@ -28,6 +28,7 @@ Files:
     /home/.device-info/productid - Product ID
     /home/.device-info/firmware  - Firmware
     /home/.device-info/revision  - Hardware revision
+    /home/.device-info/model     - Model
 
 Example:
     ./go-device-info-decoder.sh
@@ -59,6 +60,7 @@ INPUT_FILE="/home/.device-info/serial"
 PRODUCT_FILE="/home/.device-info/productid"
 FIRMWARE_FILE="/home/.device-info/firmware"
 REVISION_FILE="/home/.device-info/revision"
+MODEL_FILE="/home/.device-info/model"
 
 if [ ! -f "$INPUT_FILE" ]; then
     echo "Error: encoded file not found at $INPUT_FILE ..."
@@ -71,11 +73,13 @@ DECODED_SERIAL=$(echo "$ENCODED_SERIAL" | base64 -d)
 PRODUCT_ID=$(cat "$PRODUCT_FILE")
 FIRMWARE=$(cat "$FIRMWARE_FILE")
 REVISION=$(cat "$REVISION_FILE")
+MODEL=$(cat "$MODEL_FILE")
 
 echo "Encoded serial number: $ENCODED_SERIAL"
 echo "Decoded serial number: $DECODED_SERIAL"
 echo "Product ID: $PRODUCT_ID"
 echo "Firwmare: $FIRMWARE"
 echo "Hardware revision: $REVISION"
+echo "Model: $MODEL"
 
 exit 0
