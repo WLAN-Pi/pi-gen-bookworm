@@ -11,8 +11,8 @@ on:
           - main
         default: both
       codename:
-        description: 'Optional: release codename (defaults to "theanine")'
-        required: false
+        description: 'Release codename (use "theanine" for dev until RC is cut)'
+        required: true
         type: string
         default: "theanine"
       release_type:
