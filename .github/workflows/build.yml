@@ -11,12 +11,12 @@ on:
           - main
         default: both
       codename:
-        description: 'Release codename (e.g., theanine)'
+        description: 'Optional: release codename (defaults to "theanine")'
         required: false
         type: string
         default: "theanine"
       release_type:
-        description: 'Release type'
+        description: 'Build type: dev, rc, final, promote, or point'
         required: true
         default: 'dev'
         type: choice
@@ -27,15 +27,15 @@ on:
           - final
           - point
       point_base:
-        description: 'Base CalVer for point release (e.g., 2025.04.04)'
+        description: 'Required for point releases: base to create point release for (e.g., 2025.04.17)'
         required: false
         type: string
       rc_tag:
-        description: 'RC tag to promote (e.g., 2025.04.17_rc.1)'
+        description: 'Required to promote specific RC: full git tag to promote (e.g., 2025.04.17_rc.1)'
         required: false
         type: string
       base_date:
-        description: 'Base date for version (e.g., 2025.04.04) - defaults to today'
+        description: 'Optional: override date for versioning (affects dev/rc sequence track)'
         required: false
         type: string
 permissions:
