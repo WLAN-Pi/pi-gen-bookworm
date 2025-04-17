@@ -1,5 +1,9 @@
 #!/bin/bash -e
 
+WLANPI_VERSION=${WLANPI_VERSION:-$(date '+%Y.%m.%d')}
+WLANPI_CODENAME=${WLANPI_CODENAME:-"l-theanine"}
+WLANPI_FULL_VERSION=${WLANPI_FULL_VERSION:-"$WLANPI_VERSION-$WLANPI_CODENAME"}
+
 # shellcheck disable=SC2119
 run_sub_stage()
 {

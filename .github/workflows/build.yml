@@ -10,11 +10,150 @@ on:
           - both
           - main
         default: both
+      codename:
+        description: 'Release codename (e.g., l-theanine)'
+        required: false
+        type: string
+        default: "l-theanine"
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - rc
+          - promote
+          - final
+          - point
+      point_base:
+        description: 'Base CalVer for point release (e.g., 2025.04.04)'
+        required: false
+        type: string
+      rc_tag:
+        description: 'RC tag to promote (e.g., 2025.04.17_rc.1)'
+        required: false
+        type: string
 permissions:
   contents: write
 jobs:
-  build-prep:
+  promote-release:
+    if: ${{ github.event.inputs.release_type == 'promote' }}
     runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
+      - name: Identify RC to promote
+        id: identify-rc
+        run: |
+          CODENAME="${{ github.event.inputs.codename }}"
+          if [ -n "${{ github.event.inputs.rc_tag }}" ]; then
+            LATEST_RC="${{ github.event.inputs.rc_tag }}"
+            echo "Using explicitly provided RC tag: $LATEST_RC"
+          else
+            BASE_VERSION=$(date '+%Y.%m.%d')
+            LATEST_RC=$(git tag -l "${BASE_VERSION}_rc.*" | sort -V | tail -n1)
+            if [ -z "$LATEST_RC" ]; then
+              echo "Error: No RC found to promote for today's date"
+              exit 1
+            fi
+            echo "Automatically detected RC tag: $LATEST_RC"
+          fi
+
+          RC_VERSION=$(echo "$LATEST_RC" | sed 's/_rc\.[0-9]*$//')
+          FINAL_VERSION="${RC_VERSION//_/.}"
+
+          RC_RELEASE=$(gh release view "$LATEST_RC" --json name 2>/dev/null || echo "")
+          if [ -z "$RC_RELEASE" ]; then
+            echo "Error: No release found for tag $LATEST_RC"
+            exit 1
+          fi
+          
+          mkdir -p download
+          gh release download "$LATEST_RC" --pattern "*.sha256" --dir download || { 
+            echo "Failed to download sample file from release"
+            exit 1
+          }
+          
+          SAMPLE_FILE=$(ls download/*.sha256 2>/dev/null | head -n 1)
+          if [ -n "$SAMPLE_FILE" ]; then
+            EXTRACTED_CODENAME=$(echo "$(basename "$SAMPLE_FILE")" | grep -oP '~rc\.[0-9]+-\K[^.]+' || echo "")
+            if [ -n "$EXTRACTED_CODENAME" ] && [ "$EXTRACTED_CODENAME" != "$CODENAME" ]; then
+              echo "Warning: Extracted codename '$EXTRACTED_CODENAME' differs from input codename '$CODENAME'"
+              echo "Using extracted codename for consistency"
+              CODENAME="$EXTRACTED_CODENAME"
+            fi
+          fi
+          FULL_VERSION="$FINAL_VERSION-$CODENAME"
+          echo "rc_tag=$LATEST_RC" >> $GITHUB_OUTPUT
+          echo "final_version=$FINAL_VERSION" >> $GITHUB_OUTPUT
+          echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
+          echo "codename=$CODENAME" >> $GITHUB_OUTPUT
+      - name: Download RC assets
+        run: |
+          mkdir -p download promoted
+          RC_TAG="${{ steps.identify-rc.outputs.rc_tag }}"
+          gh release download "$RC_TAG" --dir download
+          if [ -z "$(ls -A download)" ]; then
+            echo "No files downloaded from release $RC_TAG"
+            exit 1
+          fi
+      - name: Rename assets for promotion
+        run: |
+          RC_TAG="${{ steps.identify-rc.outputs.rc_tag }}"
+          FINAL_VERSION="${{ steps.identify-rc.outputs.final_version }}"
+          FULL_VERSION="${{ steps.identify-rc.outputs.full_version }}"
+          
+          for FILE in download/*; do
+            if [ -f "$FILE" ]; then
+              EXTENSION="${FILE##*.}"
+              BASE_NAME=$(basename "$FILE" .$EXTENSION)
+              RC_PART=$(echo "$BASE_NAME" | grep -o '[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}~rc\.[0-9]*' || echo "")
+              if [ -n "$RC_PART" ]; then
+                NEW_BASE_NAME="${BASE_NAME/$RC_PART/$FINAL_VERSION}"
+                NEW_NAME="$NEW_BASE_NAME.$EXTENSION"
+                cp "$FILE" "promoted/$NEW_NAME"
+                echo "Renamed: $FILE -> promoted/$NEW_NAME"
+              else
+                cp "$FILE" "promoted/$(basename "$FILE")"
+                echo "Copied without renaming: $FILE"
+              fi
+            fi
+          done
+          
+          pushd promoted
+          for FILE in *; do
+            if [[ ! "$FILE" == *".sha256" ]]; then
+              sha256sum "$FILE" > "$FILE.sha256"
+            fi
+          done
+          popd
+      - name: Debug promotion info
+        run: |
+          echo "RC Tag: ${{ steps.identify-rc.outputs.rc_tag }}"
+          echo "Final Version: ${{ steps.identify-rc.outputs.final_version }}"
+          echo "Full Version: ${{ steps.identify-rc.outputs.full_version }}"
+          echo "Downloaded files:"
+          ls -la download/
+      - name: Create promoted release if we're running from the default branch
+        if: ${{ github.event.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+        uses: "joshschmelzle/action-automatic-releases@1c60c2dcfeb5382b81099310bdb4a376dc7753a0"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: ${{ steps.identify-rc.outputs.full_version }}
+          prerelease: false
+          files: |
+            promoted/*
+  build-prep:
+    if: ${{ github.event.inputs.release_type != 'promote' }}
+    runs-on: ubuntu-24.04-arm
+    outputs:
+      include_packagecloud_dev: ${{ steps.repos.outputs.INCLUDE_PACKAGECLOUD_DEV }}
+      version: ${{ steps.version.outputs.version }}
+      full_version: ${{ steps.version.outputs.full_version }}
+      codename: ${{ steps.version.outputs.codename }}
     steps:
       - name: Check if pkg repos input choice was made
         run: |
@@ -25,6 +164,7 @@ jobs:
           fi
           echo "REPOS=$CHOICE" >> $GITHUB_ENV
       - name: Set pkg repos choice variable
+        id: repos
         run: |
           echo "Repos choice: $REPOS"
           if [ "$REPOS" = "both" ]; then
@@ -32,7 +172,54 @@ jobs:
           else
             echo 'INCLUDE_PACKAGECLOUD_DEV=0' >> $GITHUB_OUTPUT
           fi
+      - name: Set version variables
+        id: version
+        run: |
+          CODENAME="${{ github.event.inputs.codename }}"
+          echo "codename=$CODENAME" >> $GITHUB_OUTPUT
+          BASE_VERSION=$(date '+%Y.%m.%d')
+          RELEASE_TYPE="${{ github.event.inputs.release_type }}"
+          if [ "$RELEASE_TYPE" = "point" ]; then
+            POINT_BASE="${{ github.event.inputs.point_base }}"
+            if [ -z "$POINT_BASE" ]; then
+              echo "Error: point_base is required for point releases"
+              exit 1
+            fi
+            LATEST_POINT=$(git tag -l "${POINT_BASE}.*" | sort -V | tail -n1)
+            if [ -z "$LATEST_POINT" ]; then
+              POINT_NUM=1
+            else
+              CURR_POINT=$(echo "$LATEST_POINT" | awk -F. '{print $NF}')
+              POINT_NUM=$((CURR_POINT + 1))
+            fi
+            VERSION="${POINT_BASE}.${POINT_NUM}"
+          elif [ "$RELEASE_TYPE" = "promote" ]; then
+            LATEST_RC=$(git tag -l "${BASE_VERSION}_rc.*" | sort -V | tail -n1)
+            if [ -z "$LATEST_RC" ]; then
+              echo "Error: No RC found to promote"
+              exit 1
+            fi
+            RC_VERSION=$(echo "$LATEST_RC" | sed 's/_rc\.[0-9]*$//')
+            VERSION="${RC_VERSION//_/.}"
+          elif [ "$RELEASE_TYPE" = "final" ]; then
+            VERSION="$BASE_VERSION"
+          else
+            LATEST_SEQ=$(git tag -l "${BASE_VERSION}_${RELEASE_TYPE}.*" | sort -V | tail -n1)
+            if [ -z "$LATEST_SEQ" ]; then
+              SEQ_NUM=1
+            else
+              CURR_SEQ=$(echo "$LATEST_SEQ" | awk -F. '{print $NF}')
+              SEQ_NUM=$((CURR_SEQ + 1))
+            fi
+            VERSION="${BASE_VERSION}~${RELEASE_TYPE}.${SEQ_NUM}"
+          fi
+          FULL_VERSION="${VERSION}-${CODENAME}"
+          echo "Version: $VERSION"
+          echo "Full version with codename: $FULL_VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
   build-image:
+    if: ${{ github.event.inputs.release_type != 'promote' }}
     runs-on: ubuntu-24.04-arm
     needs:
       - build-prep
@@ -71,12 +258,15 @@ jobs:
       - name: Run Build Script as Root
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
+          WLANPI_VERSION: ${{ needs.build-prep.outputs.version }}
+          WLANPI_CODENAME: ${{ needs.build-prep.outputs.codename }}
+          WLANPI_FULL_VERSION: ${{ needs.build-prep.outputs.full_version }}
         run: |
           sudo ./build.sh
       - name: Calculate version and checksums
         id: vercheck
         run: |
-          VERSION=$(date '+%Y.%m.%d')-$(git rev-parse --short HEAD)-$GITHUB_RUN_NUMBER
+          VERSION="${{ needs.build-prep.outputs.full_version }}"
           echo "version=$VERSION" >> $GITHUB_ENV
           mkdir -p processed
           for IMG in deploy/*.img.gz; do
@@ -213,7 +403,7 @@ jobs:
       #     name: wlanpi-os-all-build-artifacts-${{ env.version }}
       #     path: deploy/
 
-      - name: Create pre-release when we're running from the default branch
+      - name: Create pre-release if we're running from the default branch
         if: ${{ github.event.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
         uses: "joshschmelzle/action-automatic-releases@1c60c2dcfeb5382b81099310bdb4a376dc7753a0"
         with:
@@ -234,11 +424,24 @@ jobs:
           name: wlanpi-os-buildlogs-${{ env.version }}
           path: deploy/*.log
 
-  slack-workflow-status:
-    if: ${{ always() && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
-    name: Post Workflow Status to Slack
+  slack-workflow-build-status:
+    if: ${{ always() && (github.event.inputs.release_type != 'promote') && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
+    name: Post Build Workflow Status to Slack
     needs:
       - build-image
+    runs-on: 'ubuntu-24.04'
+    steps:
+      - name: Slack Workflow Notification
+        uses: Gamesight/slack-workflow-status@master
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  slack-workflow-promote-status:
+    if: ${{ always() && (github.event.inputs.release_type == 'promote') && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
+    name: Post Promote Workflow Status to Slack
+    needs:
+      - promote-release
     runs-on: 'ubuntu-24.04'
     steps:
       - name: Slack Workflow Notification
