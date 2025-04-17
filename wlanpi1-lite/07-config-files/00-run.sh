@@ -43,14 +43,16 @@ on_chroot <<CHEOF
 
 	# Automatically reboot after 5 seconds if a kernel panic occurs
 	echo "kernel.panic = 5" >> /etc/sysctl.conf
-
-	# Set version and codename
-	echo "VERSION=$WLANPI_VERSION" > /etc/wlanpi-release
-    echo "$WLANPI_CODENAME" > /etc/wlanpi-codename
-    echo "WLANPI_CODENAME=$WLANPI_CODENAME" >> /etc/os-release
-	chown root:root /etc/wlanpi-release /etc/wlanpi-codename
-	chmod 644 /etc/wlanpi-release /etc/wlanpi-codename
 CHEOF
+
+# Need to use EOF instead of CHEOF for variable expansion
+on_chroot << EOF
+    echo "VERSION=${WLANPI_VERSION}" > /etc/wlanpi-release
+    echo "${WLANPI_CODENAME}" > /etc/wlanpi-codename
+    echo "WLANPI_CODENAME=${WLANPI_CODENAME}" >> /etc/os-release
+    chown root:root /etc/wlanpi-release /etc/wlanpi-codename
+    chmod 644 /etc/wlanpi-release /etc/wlanpi-codename
+EOF
 
 # Add our custom sudoers file
 copy_overlay /etc/sudoers.d/wlanpidump -o root -g root -m 440
