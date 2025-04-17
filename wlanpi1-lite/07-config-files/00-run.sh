@@ -58,4 +58,8 @@ copy_overlay /etc/wpa_supplicant/wpa_supplicant.conf -o root -g root -m 600
 copy_overlay /etc/avahi/avahi-daemon.conf -o root -g root -m 644
 
 # Copy .vimrc file
-copy_overlay /home/wlanpi/.vimrc -o wlanpi -g wlanpi -m 644
+install -m 644 files/.vimrc "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.vimrc"
+
+on_chroot << EOF
+chown ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.vimrc
+EOF
