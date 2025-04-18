@@ -1,4 +1,4 @@
-name: Build wlan(pi-gen) bookworm image
+name: Generate wlan(pi-gen) bookworm OS images
 on:
   workflow_dispatch:
     inputs:
