@@ -47,9 +47,15 @@ CHEOF
 
 cat > "${ROOTFS_DIR}/tmp/update-os-release.sh" << EOF
 #!/bin/bash
+echo "Debug: WLANPI_VERSION=\${WLANPI_VERSION}"
+echo "Debug: WLANPI_CODENAME=\${WLANPI_CODENAME}"
+echo "Debug: WLANPI_HOME_URL=\${WLANPI_HOME_URL}"
+echo "Debug: WLANPI_SUPPORT_URL=\${WLANPI_SUPPORT_URL}"
+echo "Debug: WLANPI_BUG_REPORT_URL=\${WLANPI_BUG_REPORT_URL}"
+
 echo "=== Setting WLAN Pi version information ==="
 echo "VERSION=${WLANPI_VERSION}" > /etc/wlanpi-release
-chmod 644 /etc/wlanpi-release /etc/wlanpi-codename
+chmod 644 /etc/wlanpi-release 
 
 echo "=== Updating OS release information ==="
 echo "Original /etc/os-release content:"
