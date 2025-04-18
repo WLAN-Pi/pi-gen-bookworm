@@ -422,22 +422,6 @@ jobs:
     runs-on: ubuntu-24.04-arm
     if: ${{ github.event.inputs.release_type != 'promote' && github.event.inputs.ab_partition == 'true' }}
     steps:
-      - name: Download lite image artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: wlanpi-os-lite-${{ needs.build-prep.outputs.full_version }}
-          path: original-images
-
-      - name: Debug downloaded artifacts
-        run: |
-          echo "Current directory: $(pwd)"
-          echo "Directory listing:"
-          ls -la
-          echo "Looking for original-images:"
-          find . -name "original-images" -type d || echo "No original-images directory found"
-          echo "Contents of original-images (if exists):"
-          ls -la original-images || echo "Cannot access original-images"
-  
       - name: Checkout repository (for scripts)
         uses: actions/checkout@v4
         
@@ -446,8 +430,22 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y parted mount util-linux dosfstools rsync
 
+      - name: Download lite image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wlanpi-os-lite-${{ needs.build-prep.outputs.full_version }}
+          path: original-images
+
       - name: Create A/B partitioned lite image
         run: |
+          echo "Current directory: $(pwd)"
+          echo "Directory listing:"
+          ls -la
+          echo "Looking for original-images:"
+          find . -name "original-images" -type d || echo "No original-images directory found"
+          echo "Contents of original-images (if exists):"
+          ls -la original-images || echo "Cannot access original-images"
+
           VERSION="${{ needs.build-prep.outputs.full_version }}"
           AB_SUFFIX="${{ github.event.inputs.ab_partition_suffix }}"
           
@@ -456,11 +454,11 @@ jobs:
 
           mkdir -p ab-partitioned
           
-          LITE_IMG=$(find "${WORK_DIR}/original-images" -name "wlanpi-os-lite-*.img.gz" -print -quit)
+          LITE_IMG=$(find "./original-images" -name "wlanpi-os-lite-*.img.gz" -print -quit)
           if [ -z "$LITE_IMG" ]; then
             echo "Error: Could not find lite image"
             echo "Directory contents:"
-            ls -la "${WORK_DIR}/original-images" || echo "Cannot list directory"
+            ls -la "original-images" || echo "Cannot list directory"
             exit 1
           fi
           
