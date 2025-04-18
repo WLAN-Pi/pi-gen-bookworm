@@ -169,7 +169,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: promote-release-logs
+          name: promote-release-job-logs
           path: "**/*.log"
           if-no-files-found: ignore
   build-prep:
@@ -263,7 +263,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-prep-logs 
+          name: build-prep-job-logs 
           path: collected-logs/**/*.log
           if-no-files-found: ignore
   build-image:
@@ -453,7 +453,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-image-logs
+          name: build-image-job-logs
           path: collected-logs/**/*.log
           if-no-files-found: ignore
 
@@ -630,7 +630,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ab-partition-image-logs  
+          name: ab-partition-image-job-logs  
           path: collected-logs/**/*.log
           if-no-files-found: ignore
   release:
@@ -683,7 +683,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: release-logs 
+          name: release-job-logs 
           path: collected-logs/**/*.log
           if-no-files-found: ignore
 
@@ -725,7 +725,7 @@ jobs:
       - name: Upload combined logs
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-logs
+          name: wlanpi-bookworm-github-logs
           path: "combined-logs/**/*.log"
           if-no-files-found: ignore
   
