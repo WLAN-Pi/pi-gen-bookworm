@@ -132,7 +132,7 @@ jobs:
           fi
           
           mkdir -p download
-          gh release download "$LATEST_RC" --pattern "*.sha256" --dir download || { 
+          gh release download "$LATEST_RC" --pattern "*.sha256" --dir download --skip-existing || { 
             echo "Failed to download sample file from release"
             exit 1
           }
