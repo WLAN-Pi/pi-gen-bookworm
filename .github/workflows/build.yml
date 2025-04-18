@@ -72,6 +72,8 @@ jobs:
   promote-release:
     if: ${{ github.event.inputs.promote_mode == 'true' }}
     runs-on: ubuntu-24.04-arm
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
