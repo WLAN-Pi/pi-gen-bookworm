@@ -37,15 +37,15 @@ on:
         type: string
         default: 'AB'
       point_base:
-        description: 'Required for point releases: base to create point release for (e.g., 2025.04.17)'
+        description: 'For point releases required to specify base to create point release for (e.g., 2025.04.17)'
         required: false
         type: string
       rc_tag:
-        description: 'Required to promote specific RC: full git tag to promote (e.g., 2025.04.17_rc.1)'
+        description: 'To promote specific RC provide full git tag (e.g., 2025.04.17_rc.1)'
         required: false
         type: string
       base_date:
-        description: 'Optional: override date for versioning (affects dev/rc sequence track)'
+        description: 'Override date for previous build to increment dev/rc sequence track e.g., 2025.04.17_rc.2)'
         required: false
         type: string
 permissions:
