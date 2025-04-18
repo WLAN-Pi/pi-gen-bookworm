@@ -114,7 +114,7 @@ fi
 if [ -z "$SERIAL_NUMBER" ]; then
     MAX_ATTEMPTS=5
     CURRENT_ATTEMPT=1
-    RETRY_DELAY=1
+    RETRY_DELAY=2
     SUCCESS=false
     
     log "Beginning serial port read attempts (max $MAX_ATTEMPTS attempts with $RETRY_DELAY second delays) ..."

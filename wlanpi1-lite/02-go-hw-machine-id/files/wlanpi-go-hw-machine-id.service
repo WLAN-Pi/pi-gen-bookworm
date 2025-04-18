@@ -9,7 +9,7 @@ Conflicts=shutdown.target
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/local/sbin/go-hw-machine-id.sh
-TimeoutSec=15
+TimeoutSec=30
 
 [Install]
 WantedBy=sysinit.target
