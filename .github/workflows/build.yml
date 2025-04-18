@@ -26,6 +26,16 @@ on:
           - promote
           - final
           - point
+      ab_partition:
+        description: 'Enable A/B partitioning for lite image'
+        required: false
+        type: boolean
+        default: true
+      ab_partition_suffix:
+        description: 'Suffix for A/B partitioned image filename'
+        required: false
+        type: string
+        default: 'AB'
       point_base:
         description: 'Required for point releases: base to create point release for (e.g., 2025.04.17)'
         required: false
@@ -407,11 +417,199 @@ jobs:
           name: wlanpi-os-all-build-artifacts-${{ env.version }}
           path: deploy/
 
+  ab-partition-image:
+    needs: [build-image, build-prep]
+    runs-on: ubuntu-24.04-arm
+    if: ${{ github.event.inputs.release_type != 'promote' && github.event.inputs.ab_partition == 'true' }}
+    steps:
+      - name: Download lite image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wlanpi-os-lite-${{ needs.build-prep.outputs.full_version }}
+          path: original-images
+
+      - name: Checkout repository (for scripts)
+        uses: actions/checkout@v4
+        
+      - name: Install required dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y parted mount util-linux dosfstools rsync
+
+      - name: Check available disk space
+        run: |
+          df -h
+          echo "Checking image size ..."
+          COMPRESSED_SIZE=$(du -h original-images/*.img.gz | cut -f1)
+          echo "Compressed image size: $COMPRESSED_SIZE"
+  
+      - name: Check and prepare disk space
+        run: |
+          FREE_SPACE=$(df -h . | awk 'NR==2 {print $4}')
+          echo "Free space before operation: $FREE_SPACE"
+          
+          sudo apt-get clean
+          docker system prune -af || true
+          
+          sudo fallocate -l 4G /swapfile || true
+          sudo chmod 600 /swapfile || true
+          sudo mkswap /swapfile || true
+          sudo swapon /swapfile || true
+          
+          FREE_SPACE=$(df -h . | awk 'NR==2 {print $4}')
+          echo "Free space after cleanup: $FREE_SPACE"
+  
+      - name: Create A/B partitioned lite image
+        run: |
+          VERSION="${{ needs.build-prep.outputs.full_version }}"
+          AB_SUFFIX="${{ github.event.inputs.ab_partition_suffix }}"
+          
+          mkdir -p ab-partitioned
+          
+          LITE_IMG=$(find original-images -name "wlanpi-os-lite-*.img.gz" -print -quit)
+          if [ -z "$LITE_IMG" ]; then
+            echo "Error: Could not find lite image"
+            exit 1
+          fi
+          
+          LITE_BASE=$(basename "$LITE_IMG")
+          LITE_NOEXT="${LITE_BASE%.img.gz}"
+          OUTPUT_BASE="${LITE_NOEXT}-${AB_SUFFIX}.img"
+          
+          echo "Creating A/B partitioned image from $LITE_BASE"
+          echo "Output will be: $OUTPUT_BASE"
+          
+          # Decompress the image (this will take time and disk space)
+          echo "Decompressing image..."
+          gunzip -c "$LITE_IMG" > "original.img"
+        
+          ORIG_SIZE=$(du -h original.img | cut -f1)
+          echo "Decompressed image size: $ORIG_SIZE"
+
+          # Run the A/B partition script
+          sudo ./scripts/ab_partition "original.img" "$OUTPUT_BASE"
+          
+          if [ ! -f "$OUTPUT_BASE" ]; then
+            echo "Error: A/B partition script failed to create output image"
+            exit 1
+          fi
+
+          AB_SIZE=$(du -h "$OUTPUT_BASE" | cut -f1)
+          echo "A/B partitioned image size: $AB_SIZE"
+          
+          # Compress the A/B image
+          gzip -9 "$OUTPUT_BASE"
+          
+          mv "$OUTPUT_BASE.gz" "ab-partitioned/"
+
+          # Calculate checksums
+          pushd ab-partitioned
+          sha256sum "$OUTPUT_BASE.gz" > "$OUTPUT_BASE.gz.sha256"
+          popd
+          
+          echo "output_base=$OUTPUT_BASE" >> $GITHUB_ENV
+          
+          # Create info file if original has one
+          INFO_FILE="${LITE_IMG%.img.gz}.info"
+          if [ -f "$INFO_FILE" ]; then
+            cp "$INFO_FILE" "ab-partitioned/${OUTPUT_BASE%.img}-info"
+            echo "A/B Partitioning Applied: Yes" >> "ab-partitioned/${OUTPUT_BASE%.img}-info"
+            echo "A/B Partition Date: $(date '+%Y-%m-%d %H:%M:%S')" >> "ab-partitioned/${OUTPUT_BASE%.img}-info"
+          fi
+          
+          # Cleanup
+          rm -f "original.img"
+      - name: Basic validation of A/B partitioned image
+        run: |
+          OUTPUT_IMG=$(find ab-partitioned -name "*.img.gz" -print -quit)
+          TEMP_IMG="test_mount.img"
+          gunzip -c "$OUTPUT_IMG" > "$TEMP_IMG"
+          
+          # Set up loop device
+          LOOP_DEV=$(sudo losetup --show -P -f "$TEMP_IMG")
+          
+          # Check partition structure
+          echo "Partition structure:"
+          sudo fdisk -l "$LOOP_DEV"
+          
+          # Verify partition count (should have at least 5 partitions for A/B structure)
+          PART_COUNT=$(lsblk "$LOOP_DEV" | grep -c part)
+          if [ "$PART_COUNT" -lt 5 ]; then
+            echo "Error: Expected at least 5 partitions but found $PART_COUNT"
+            sudo losetup -d "$LOOP_DEV"
+            rm "$TEMP_IMG"
+            exit 1
+          fi
+          
+          # Mount and check boot partition
+          sudo mkdir -p /mnt/test_boot
+          sudo mount "${LOOP_DEV}p1" /mnt/test_boot
+          
+          # Check for key boot files
+          BOOT_FILES=("cmdline.txt" "config.txt" "autoboot.txt" "tryboot.txt")
+          for file in "${BOOT_FILES[@]}"; do
+            if [ ! -f "/mnt/test_boot/$file" ]; then
+              echo "Error: Missing boot file: $file"
+              sudo umount /mnt/test_boot
+              sudo losetup -d "$LOOP_DEV"
+              rm "$TEMP_IMG"
+              exit 1
+            fi
+          done
+          
+          # Clean up
+          sudo umount /mnt/test_boot
+          sudo losetup -d "$LOOP_DEV"
+          rm "$TEMP_IMG"
+          
+          echo "A/B partitioned image validation passed!"
+    
+      - name: Upload A/B partitioned image
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-lite-AB-${{ needs.build-prep.outputs.full_version }}
+          path: ab-partitioned/*.img.gz
+          
+      - name: Upload A/B partitioned image checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-lite-AB-${{ needs.build-prep.outputs.full_version }}-digest
+          path: ab-partitioned/*.sha256
+          
+      - name: Copy artifacts for release
+        if: ${{ github.event.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+        run: |
+          mkdir -p release-files
+          cp ab-partitioned/* release-files/
+          
+      - name: List artifacts for verification
+        run: |
+          echo "A/B partitioned artifacts ready:"
+          ls -la ab-partitioned/
+  
+  release:
+    needs: [ab-partition-image, build-image, build-prep]
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+
+      - name: Prepare release directory
+        run: |
+          mkdir -p release-files
+          cp -r all-artifacts/*/*.img.gz release-files/
+          cp -r all-artifacts/*/*.sha256 release-files/
+          cp -r all-artifacts/*/*.info release-files/
+          
+          echo "Release files prepared:"
+          ls -la release-files/
+
       - name: Prep Create GitHub pre-release if we're running from the default branch
         if: ${{ github.event.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
         run: |
-          # Get version but replace tildes with underscores for git tag compatibility
-          VERSION="${{ env.version }}"
+          VERSION="${{ needs.build-prep.outputs.full_version }}"
           GIT_TAG=$(echo "$VERSION" | sed 's/~/\_/g')
           echo "Using git tag: $GIT_TAG"
           echo "git_tag=$GIT_TAG" >> $GITHUB_ENV
@@ -424,20 +622,16 @@ jobs:
           automatic_release_tag: ${{ env.git_tag }}
           prerelease: true
           files: |
-            deploy/*.zip
-            deploy/*.zip.sha256
-            processed/*.img.gz
-            processed/*.img.gz.sha256
-            processed/*.info
+            release-files/*
 
       - name: Upload any logs found
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-${{ env.version }}-buildlogs
+          name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}-buildlogs
           path: "**/*.log"
-
-  slack-workflow-build-status:
+    
+  slack-workflow-release-status:
     if: ${{ always() && (github.event.inputs.release_type != 'promote') && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
     name: Post Build Workflow Status to Slack
     needs:
