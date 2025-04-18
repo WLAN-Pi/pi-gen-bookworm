@@ -771,7 +771,7 @@ jobs:
   
   slack-workflow-status:
     if: ${{ always() && (github.event.inputs.promote_mode != 'true') && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
-    name: Post Build Workflow Status to Slack
+    name: Build workflow status to Slack
     needs:
       - build-image
       - ab-partition-image
@@ -786,7 +786,7 @@ jobs:
 
   slack-workflow-promote-status:
     if: ${{ always() && (github.event.inputs.promote_mode == 'true') && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
-    name: Post Promote Workflow Status to Slack
+    name: Promote workflow status to Slack
     needs:
       - promote-release
     runs-on: 'ubuntu-24.04'
