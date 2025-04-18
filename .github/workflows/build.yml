@@ -436,39 +436,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y parted mount util-linux dosfstools rsync
 
-      - name: Check available disk space
-        run: |
-          df -h
-          echo "Checking image size ..."
-          COMPRESSED_SIZE=$(du -h original-images/*.img.gz | cut -f1)
-          echo "Compressed image size: $COMPRESSED_SIZE"
-  
-      - name: Check and prepare disk space
-        run: |
-          FREE_SPACE=$(df -h . | awk 'NR==2 {print $4}')
-          echo "Free space before operation: $FREE_SPACE"
-          
-          sudo apt-get clean
-          docker system prune -af || true
-          
-          sudo fallocate -l 4G /swapfile || true
-          sudo chmod 600 /swapfile || true
-          sudo mkswap /swapfile || true
-          sudo swapon /swapfile || true
-          
-          FREE_SPACE=$(df -h . | awk 'NR==2 {print $4}')
-          echo "Free space after cleanup: $FREE_SPACE"
-  
       - name: Create A/B partitioned lite image
         run: |
           VERSION="${{ needs.build-prep.outputs.full_version }}"
           AB_SUFFIX="${{ github.event.inputs.ab_partition_suffix }}"
           
+          WORK_DIR="${GITHUB_WORKSPACE}"
+          echo "Working directory: ${WORK_DIR}"
+
           mkdir -p ab-partitioned
           
-          LITE_IMG=$(find original-images -name "wlanpi-os-lite-*.img.gz" -print -quit)
+          LITE_IMG=$(find "${WORK_DIR}/original-images" -name "wlanpi-os-lite-*.img.gz" -print -quit)
           if [ -z "$LITE_IMG" ]; then
             echo "Error: Could not find lite image"
+            echo "Directory contents:"
+            ls -la "${WORK_DIR}/original-images" || echo "Cannot list directory"
             exit 1
           fi
           
