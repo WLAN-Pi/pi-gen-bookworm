@@ -314,7 +314,7 @@ jobs:
           WLANPI_CODENAME: ${{ needs.build-prep.outputs.codename }}
           WLANPI_FULL_VERSION: ${{ needs.build-prep.outputs.full_version }}
         run: |
-          sudo ./build.sh
+          sudo ./build.sh 2>&1 | tee build_output.log
       - name: Calculate version and checksums
         id: vercheck
         run: |
