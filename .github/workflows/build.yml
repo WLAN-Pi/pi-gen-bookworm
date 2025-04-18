@@ -618,6 +618,11 @@ jobs:
           
   upload-logs:
     runs-on: ubuntu-24.04-arm
+    needs:
+      - build-image
+      - ab-partition-image
+      - release
+      - promote-release
     if: ${{ always() }}
     steps:
       - name: Debug working directory
