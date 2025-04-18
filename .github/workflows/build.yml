@@ -607,14 +607,11 @@ jobs:
           TEMP_IMG="test_mount.img"
           gunzip -c "$OUTPUT_IMG" > "$TEMP_IMG"
           
-          # Set up loop device
           LOOP_DEV=$(sudo losetup --show -P -f "$TEMP_IMG")
           
-          # Check partition structure
           echo "Partition structure:"
           sudo fdisk -l "$LOOP_DEV"
           
-          # Verify partition count (should have at least 5 partitions for A/B structure)
           PART_COUNT=$(lsblk "$LOOP_DEV" | grep -c part)
           if [ "$PART_COUNT" -lt 5 ]; then
             echo "Error: Expected at least 5 partitions but found $PART_COUNT"
@@ -623,11 +620,9 @@ jobs:
             exit 1
           fi
           
-          # Mount and check boot partition
           sudo mkdir -p /mnt/test_boot
           sudo mount "${LOOP_DEV}p1" /mnt/test_boot
           
-          # Check for key boot files
           BOOT_FILES=("cmdline.txt" "config.txt" "autoboot.txt" "tryboot.txt")
           for file in "${BOOT_FILES[@]}"; do
             if [ ! -f "/mnt/test_boot/$file" ]; then
@@ -639,7 +634,6 @@ jobs:
             fi
           done
           
-          # Clean up
           sudo umount /mnt/test_boot
           sudo losetup -d "$LOOP_DEV"
           rm "$TEMP_IMG"
@@ -649,13 +643,13 @@ jobs:
       - name: Upload A/B partitioned image
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-lite-AB-${{ needs.build-prep.outputs.full_version }}
+          name: wlanpi-os-lite-${{ needs.build-prep.outputs.full_version }}-AB
           path: ab-partitioned/*.img.gz
           
       - name: Upload A/B partitioned image checksums
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-lite-AB-${{ needs.build-prep.outputs.full_version }}-digest
+          name: wlanpi-os-lite-${{ needs.build-prep.outputs.full_version }}-AB-digest
           path: ab-partitioned/*.sha256
           
       - name: Copy artifacts for release
