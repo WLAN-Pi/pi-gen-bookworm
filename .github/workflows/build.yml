@@ -3,10 +3,20 @@ on:
   workflow_dispatch:
     inputs:
       promote_mode:
-        description: 'Promote: an existing RC to final release (does not build. ignores inputs from "build:" options)'
+        description: 'Promote: an existing RC to final release. by default attempts to promote RC from todays date. ignores inputs from "build:" options'
         required: false
         type: boolean
         default: false
+
+      rc_tag:
+        description: 'Promote: a specific RC: provide full git tag (e.g., 2025.04.18_rc.1)'
+        required: false
+        type: string
+        
+      base_date:
+        description: 'Promote/build: override date for previous build to increment dev/rc sequence track e.g., 2025.04.18_rc.2)'
+        required: false
+        type: string
 
       repos:
         description: 'Build: package cloud repos to include in new build (default is both dev/main)'
@@ -47,17 +57,7 @@ on:
         default: 'AB'
 
       point_base:
-        description: 'Build: for point releases: specify base to create point release for (e.g., 2025.04.17)'
-        required: false
-        type: string
-
-      rc_tag:
-        description: 'Promote: a specific RC: provide full git tag (e.g., 2025.04.17_rc.1)'
-        required: false
-        type: string
-        
-      base_date:
-        description: 'Promote/build: override date for previous build to increment dev/rc sequence track e.g., 2025.04.17_rc.2)'
+        description: 'Build: for point releases: specify base to create point release for (e.g., 2025.04.18)'
         required: false
         type: string
 permissions:
