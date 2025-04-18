@@ -156,7 +156,7 @@ jobs:
         run: |
           mkdir -p download promoted
           RC_TAG="${{ steps.identify-rc.outputs.rc_tag }}"
-          gh release download "$RC_TAG" --dir download
+          gh release download "$RC_TAG" --dir download --clobber
           if [ -z "$(ls -A download)" ]; then
             echo "No files downloaded from release $RC_TAG"
             exit 1
