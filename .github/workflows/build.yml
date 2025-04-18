@@ -428,6 +428,16 @@ jobs:
           name: wlanpi-os-lite-${{ needs.build-prep.outputs.full_version }}
           path: original-images
 
+      - name: Debug downloaded artifacts
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Directory listing:"
+          ls -la
+          echo "Looking for original-images:"
+          find . -name "original-images" -type d || echo "No original-images directory found"
+          echo "Contents of original-images (if exists):"
+          ls -la original-images || echo "Cannot access original-images"
+  
       - name: Checkout repository (for scripts)
         uses: actions/checkout@v4
         
