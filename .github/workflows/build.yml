@@ -44,6 +44,12 @@ on:
           - final
           - point
 
+      skip_full_image:
+        description: 'Build: skip building the full image, build only lite image'
+        required: false
+        type: boolean
+        default: false
+      
       ab_partition:
         description: 'Build: enable A/B partitioning for lite image'
         required: false
@@ -347,7 +353,13 @@ jobs:
           WLANPI_VERSION: ${{ needs.build-prep.outputs.version }}
           WLANPI_CODENAME: ${{ needs.build-prep.outputs.codename }}
           WLANPI_FULL_VERSION: ${{ needs.build-prep.outputs.full_version }}
+          SKIP_FULL_IMAGE: ${{ github.event.inputs.skip_full_image }}
         run: |
+          if [ "$SKIP_FULL_IMAGE" = "true" ]; then
+            echo "Skipping full image build as requested"
+            mkdir -p wlanpi2-full
+            touch wlanpi2-full/SKIP
+          fi
           sudo ./build.sh 2>&1 | tee build_output.log
       - name: Calculate version and checksums
         id: vercheck
@@ -449,10 +461,12 @@ jobs:
           ls -la zips/
 
       - name: Upload full image
+        if: ${{ github.event.inputs.skip_full_image != 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: wlanpi-os-full-${{ env.version }}
           path: processed/wlanpi-os-full-*.img.gz
+          if-no-files-found: ignore
 
       - name: Upload lite image
         uses: actions/upload-artifact@v4
@@ -685,9 +699,9 @@ jobs:
       - name: Prepare release directory
         run: |
           mkdir -p release-files
-          cp -r all-artifacts/*/*.img.gz release-files/
-          cp -r all-artifacts/*/*.sha256 release-files/
-          cp -r all-artifacts/*/*.info release-files/
+          find all-artifacts -name "*.img.gz" -exec cp {} release-files/ \;
+          find all-artifacts -name "*.sha256" -exec cp {} release-files/ \;
+          find all-artifacts -name "*.info" -exec cp {} release-files/ \;
           
           echo "Release files prepared:"
           ls -la release-files/
