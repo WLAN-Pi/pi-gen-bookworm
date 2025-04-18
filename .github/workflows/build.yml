@@ -706,8 +706,6 @@ jobs:
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: ${{ env.git_tag }}
-          name: ${{ steps.tag_prep.outputs.git_tag }}
-          draft: false
           prerelease: true
           files: |
             release-files/*
