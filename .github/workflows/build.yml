@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       promote_mode:
-        description: 'Promote: an existing RC to final release (instead of building, ignores inputs from "build:" options)'
+        description: 'Promote: an existing RC to final release (does not build. ignores inputs from "build:" options)'
         required: false
         type: boolean
         default: false
