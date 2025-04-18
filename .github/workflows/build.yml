@@ -2,6 +2,12 @@ name: Build wlan(pi-gen) bookworm image
 on:
   workflow_dispatch:
     inputs:
+      promote_mode:
+        description: 'Promote an existing RC to final release (instead of building)'
+        required: false
+        type: boolean
+        default: false
+
       repos:
         descriptions: Package cloud repos to include (default is both dev/main)
         required: true
@@ -10,40 +16,46 @@ on:
           - both
           - main
         default: both
+
       codename:
         description: 'Release codename (use "theanine" for dev until RC is cut)'
         required: true
         type: string
         default: "theanine"
+
       release_type:
-        description: 'Build type: dev, rc, final, promote, or point'
+        description: 'Build type: dev, rc, final, or point'
         required: true
         default: 'dev'
         type: choice
         options:
           - dev
           - rc
-          - promote
           - final
           - point
+
       ab_partition:
         description: 'Enable A/B partitioning for lite image'
         required: false
         type: boolean
         default: true
+
       ab_partition_suffix:
         description: 'Suffix for A/B partitioned image filename'
         required: false
         type: string
         default: 'AB'
+
       point_base:
-        description: 'For point releases required to specify base to create point release for (e.g., 2025.04.17)'
+        description: 'For point releases: specify base to create point release for (e.g., 2025.04.17)'
         required: false
         type: string
+
       rc_tag:
         description: 'To promote specific RC provide full git tag (e.g., 2025.04.17_rc.1)'
         required: false
         type: string
+        
       base_date:
         description: 'Override date for previous build to increment dev/rc sequence track e.g., 2025.04.17_rc.2)'
         required: false
@@ -52,7 +64,7 @@ permissions:
   contents: write
 jobs:
   promote-release:
-    if: ${{ github.event.inputs.release_type == 'promote' }}
+    if: ${{ github.event.inputs.promote_mode == 'true' }}
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
@@ -173,7 +185,7 @@ jobs:
           path: "**/*.log"
           if-no-files-found: ignore
   build-prep:
-    if: ${{ github.event.inputs.release_type != 'promote' }}
+    if: ${{ github.event.inputs.promote_mode != 'true' }}
     runs-on: ubuntu-24.04-arm
     outputs:
       include_packagecloud_dev: ${{ steps.repos.outputs.INCLUDE_PACKAGECLOUD_DEV }}
@@ -225,14 +237,6 @@ jobs:
               POINT_NUM=$((CURR_POINT + 1))
             fi
             VERSION="${POINT_BASE}.${POINT_NUM}"
-          elif [ "$RELEASE_TYPE" = "promote" ]; then
-            LATEST_RC=$(git tag -l "${BASE_VERSION}_rc.*" | sort -V | tail -n1)
-            if [ -z "$LATEST_RC" ]; then
-              echo "Error: No RC found to promote"
-              exit 1
-            fi
-            RC_VERSION=$(echo "$LATEST_RC" | sed 's/_rc\.[0-9]*$//')
-            VERSION="${RC_VERSION//_/.}"
           elif [ "$RELEASE_TYPE" = "final" ]; then
             VERSION="$BASE_VERSION"
           else
@@ -267,7 +271,7 @@ jobs:
           path: collected-logs/**/*.log
           if-no-files-found: ignore
   build-image:
-    if: ${{ github.event.inputs.release_type != 'promote' }}
+    if: ${{ github.event.inputs.promote_mode != 'true'  }}
     runs-on: ubuntu-24.04-arm
     needs:
       - build-prep
@@ -460,7 +464,7 @@ jobs:
   ab-partition-image:
     needs: [build-image, build-prep]
     runs-on: ubuntu-24.04-arm
-    if: ${{ github.event.inputs.release_type != 'promote' && github.event.inputs.ab_partition == 'true' }}
+    if: ${{ github.event.inputs.promote_mode != 'true' && github.event.inputs.ab_partition == 'true' }}
     steps:
       - name: Checkout repository (for scripts)
         uses: actions/checkout@v4
@@ -730,7 +734,7 @@ jobs:
           if-no-files-found: ignore
   
   slack-workflow-status:
-    if: ${{ always() && (github.event.inputs.release_type != 'promote') && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
+    if: ${{ always() && (github.event.inputs.promote_mode != 'true') && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
     name: Post Build Workflow Status to Slack
     needs:
       - build-image
@@ -745,7 +749,7 @@ jobs:
           slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   slack-workflow-promote-status:
-    if: ${{ always() && (github.event.inputs.release_type == 'promote') && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
+    if: ${{ always() && (github.event.inputs.promote_mode == 'true') && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
     name: Post Promote Workflow Status to Slack
     needs:
       - promote-release
