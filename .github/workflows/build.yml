@@ -240,13 +240,47 @@ jobs:
           elif [ "$RELEASE_TYPE" = "final" ]; then
             VERSION="$BASE_VERSION"
           else
-            LATEST_SEQ=$(git tag -l "${BASE_VERSION}_${RELEASE_TYPE}.*" | sort -V | tail -n1)
+            LATEST_SEQ_UNDERSCORE=$(git tag -l "${BASE_VERSION}_${RELEASE_TYPE}.*" | sort -V | tail -n1)
+            LATEST_SEQ_TILDE=$(git tag -l "${BASE_VERSION}~${RELEASE_TYPE}.*" | sort -V | tail -n1)
+            
+            echo "Looking for existing tags with patterns:"
+            echo "${BASE_VERSION}_${RELEASE_TYPE}.*"
+            echo "${BASE_VERSION}~${RELEASE_TYPE}.*"
+            
+            if [ -n "$LATEST_SEQ_UNDERSCORE" ]; then
+              echo "Found tag with underscore: $LATEST_SEQ_UNDERSCORE"
+              LATEST_SEQ="$LATEST_SEQ_UNDERSCORE"
+            elif [ -n "$LATEST_SEQ_TILDE" ]; then
+              echo "Found tag with tilde: $LATEST_SEQ_TILDE"
+              LATEST_SEQ="$LATEST_SEQ_TILDE"
+            else
+              echo "No existing tags found"
+              LATEST_SEQ=""
+            fi
+            
             if [ -z "$LATEST_SEQ" ]; then
               SEQ_NUM=1
+              echo "Starting new sequence with number 1"
             else
-              CURR_SEQ=$(echo "$LATEST_SEQ" | awk -F. '{print $NF}')
-              SEQ_NUM=$((CURR_SEQ + 1))
+              if [[ "$LATEST_SEQ" == *"_$RELEASE_TYPE."* ]]; then
+                # For tags with underscore format: 2025.04.18_dev.1-theanine
+                CURR_SEQ=$(echo "$LATEST_SEQ" | grep -o "_$RELEASE_TYPE\.[0-9]*" | cut -d. -f2)
+              else
+                # For tags with tilde format: 2025.04.18~dev.1-theanine
+                CURR_SEQ=$(echo "$LATEST_SEQ" | grep -o "~$RELEASE_TYPE\.[0-9]*" | cut -d. -f2)
+              fi
+              
+              if [ -z "$CURR_SEQ" ]; then
+                echo "Failed to extract sequence number from $LATEST_SEQ, defaulting to 1"
+                SEQ_NUM=1
+              else
+                echo "Current sequence number: $CURR_SEQ"
+                SEQ_NUM=$((CURR_SEQ + 1))
+                echo "Next sequence number: $SEQ_NUM"
+              fi
             fi
+            
+            # Always use tilde in the VERSION but the tag will convert to underscore
             VERSION="${BASE_VERSION}~${RELEASE_TYPE}.${SEQ_NUM}"
           fi
           FULL_VERSION="${VERSION}-${CODENAME}"
