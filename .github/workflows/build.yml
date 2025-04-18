@@ -252,10 +252,19 @@ jobs:
           echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
       - name: Upload job logs
         if: always()
+        run: |
+          echo "Current working directory: $(pwd)"
+          mkdir -p collected-logs
+          find . -name "*.log" -type f -readable -exec cp --parents {} ./collected-logs/ \; 2>/dev/null || true
+          echo "Found these accessible log files:"
+          find ./collected-logs -type f | sort || echo "No logs found or could not list logs"
+          
+      - name: Upload collected job logs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-prep-logs
-          path: "**/*.log"
+          name: build-prep-logs 
+          path: collected-logs/**/*.log
           if-no-files-found: ignore
   build-image:
     if: ${{ github.event.inputs.release_type != 'promote' }}
@@ -434,18 +443,20 @@ jobs:
       - name: Upload job logs
         if: always()
         run: |
-          sudo find . -name "*.log" -type f -exec cp --parents {} ./collected-logs/ \;
-          sudo chown -R $(id -u):$(id -g) ./collected-logs/
-          find ./collected-logs -type f | sort
-
-      - name: Upload collected logs
+          echo "Current working directory: $(pwd)"
+          mkdir -p collected-logs
+          find . -name "*.log" -type f -readable -exec cp --parents {} ./collected-logs/ \; 2>/dev/null || true
+          echo "Found these accessible log files:"
+          find ./collected-logs -type f | sort || echo "No logs found or could not list logs"
+          
+      - name: Upload collected job logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-image-logs
           path: collected-logs/**/*.log
           if-no-files-found: ignore
-  
+
   ab-partition-image:
     needs: [build-image, build-prep]
     runs-on: ubuntu-24.04-arm
@@ -605,6 +616,23 @@ jobs:
         run: |
           echo "A/B partitioned artifacts ready:"
           ls -la ab-partitioned/ 
+  
+      - name: Upload job logs
+        if: always()
+        run: |
+          echo "Current working directory: $(pwd)"
+          mkdir -p collected-logs
+          find . -name "*.log" -type f -readable -exec cp --parents {} ./collected-logs/ \; 2>/dev/null || true
+          echo "Found these accessible log files:"
+          find ./collected-logs -type f | sort || echo "No logs found or could not list logs"
+          
+      - name: Upload collected job logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ab-partition-image-logs  
+          path: collected-logs/**/*.log
+          if-no-files-found: ignore
   release:
     needs: [ab-partition-image, build-image, build-prep]
     runs-on: ubuntu-24.04-arm
@@ -641,22 +669,24 @@ jobs:
           prerelease: true
           files: |
             release-files/*
-
+  
       - name: Upload job logs
         if: always()
         run: |
-          sudo find . -name "*.log" -type f -exec cp --parents {} ./collected-logs/ \;
-          sudo chown -R $(id -u):$(id -g) ./collected-logs/
-          find ./collected-logs -type f | sort
-
-      - name: Upload collected logs
+          echo "Current working directory: $(pwd)"
+          mkdir -p collected-logs
+          find . -name "*.log" -type f -readable -exec cp --parents {} ./collected-logs/ \; 2>/dev/null || true
+          echo "Found these accessible log files:"
+          find ./collected-logs -type f | sort || echo "No logs found or could not list logs"
+          
+      - name: Upload collected job logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-image-logs
+          name: release-logs 
           path: collected-logs/**/*.log
           if-no-files-found: ignore
-          
+
   upload-logs:
     runs-on: ubuntu-24.04-arm
     needs:
@@ -672,14 +702,26 @@ jobs:
           pattern: "*-logs"
           path: all-logs
           
-      - name: Combine logs
+      - name: Organize combined logs
         run: |
           echo "Downloaded logs:"
           find all-logs -type f | sort
-          
           mkdir -p combined-logs
-          cp -r all-logs/*/* combined-logs/ || echo "No logs found to combine"
-          
+          for JOB_DIR in all-logs/*; do
+            if [ -d "$JOB_DIR" ]; then
+              JOB_NAME=$(basename "$JOB_DIR")
+              mkdir -p "combined-logs/$JOB_NAME"
+              cp -r "$JOB_DIR"/* "combined-logs/$JOB_NAME/" || echo "No logs found in $JOB_NAME"
+            fi
+          done
+          echo "Log Summary - $(date)" > combined-logs/summary.txt
+          for JOB_DIR in combined-logs/*; do
+            if [ -d "$JOB_DIR" ]; then
+              COUNT=$(find "$JOB_DIR" -type f | wc -l)
+              echo "$(basename $JOB_DIR): $COUNT log files" >> combined-logs/summary.txt
+            fi
+          done
+
       - name: Upload combined logs
         uses: actions/upload-artifact@v4
         with:
