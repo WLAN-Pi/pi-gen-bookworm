@@ -190,6 +190,10 @@ echo "IMG_FILENAME is ${IMG_FILENAME}"
 export ARCHIVE_FILENAME="${IMG_FILENAME}"
 echo "ARCHIVE_FILENAME is ${ARCHIVE_FILENAME}"
 
+export WLANPI_HOME_URL="https://wlanpi.com"
+export WLANPI_SUPPORT_URL="https://github.com/orgs/WLAN-Pi/discussions"
+export WLANPI_BUG_REPORT_URL="https://github.com/WLAN-Pi"
+
 export IMG_DATE="${IMG_DATE:-"$(date +%Y%m%d-%H%M%S)"}"
 export INCLUDE_PACKAGECLOUD_DEV=${INCLUDE_PACKAGECLOUD_DEV:-1}
 
