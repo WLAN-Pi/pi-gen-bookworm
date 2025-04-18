@@ -47,9 +47,13 @@ CHEOF
 
 cat > "${ROOTFS_DIR}/tmp/update-os-release.sh" << EOF
 #!/bin/bash
-# Create wlanpi-release and wlanpi-codename files
+echo "=== Setting WLAN Pi version information ==="
 echo "VERSION=${WLANPI_VERSION}" > /etc/wlanpi-release
 chmod 644 /etc/wlanpi-release /etc/wlanpi-codename
+
+echo "=== Updating OS release information ==="
+echo "Original /etc/os-release content:"
+cat /etc/os-release
 
 # Update os-release file with WLAN Pi specific information
 sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="WLAN Pi GNU\/Linux 12 (bookworm)"/' /etc/os-release
@@ -58,6 +62,11 @@ sed -i 's|^HOME_URL=.*|HOME_URL="${WLANPI_HOME_URL}"|' /etc/os-release
 sed -i 's|^SUPPORT_URL=.*|SUPPORT_URL="${WLANPI_SUPPORT_URL}"|' /etc/os-release
 sed -i 's|^BUG_REPORT_URL=.*|BUG_REPORT_URL="${WLANPI_BUG_REPORT_URL}"|' /etc/os-release
 sed -i 's/^VERSION_CODENAME=.*/VERSION_CODENAME=${WLANPI_CODENAME}/' /etc/os-release
+
+echo "Updated /etc/os-release content:"
+cat /etc/os-release
+
+echo "=== OS Release Update Complete ==="
 EOF
 
 chmod +x "${ROOTFS_DIR}/tmp/update-os-release.sh"
@@ -68,7 +77,7 @@ WLANPI_CODENAME="${WLANPI_CODENAME}" \
 WLANPI_HOME_URL="${WLANPI_HOME_URL}" \
 WLANPI_SUPPORT_URL="${WLANPI_SUPPORT_URL}" \
 WLANPI_BUG_REPORT_URL="${WLANPI_BUG_REPORT_URL}" \
-/tmp/update-os-release.sh
+/tmp/update-os-release.sh 
 EOF
 
 rm -f "${ROOTFS_DIR}/tmp/update-os-release.sh"
