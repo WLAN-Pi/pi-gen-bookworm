@@ -63,7 +63,7 @@ on:
         default: 'AB'
 
       point_base:
-        description: 'Build: for point releases: specify base to create point release for (e.g., 2025.04.18)'
+        description: 'Build: for point releases (2025.04.18.1): specify base to create point release for (e.g., 2025.04.18)'
         required: false
         type: string
 permissions:
