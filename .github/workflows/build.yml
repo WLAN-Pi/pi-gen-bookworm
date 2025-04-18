@@ -425,19 +425,27 @@ jobs:
           name: wlanpi-os-${{ env.version }}-info
           path: processed/wlanpi-os-*.info
 
-      - name: Everything
-        uses: actions/upload-artifact@v4
-        with:
-          name: wlanpi-os-all-build-artifacts-${{ env.version }}
-          path: deploy/
-      
+      # - name: Everything
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: wlanpi-os-all-build-artifacts-${{ env.version }}
+      #     path: deploy/
+
       - name: Upload job logs
+        if: always()
+        run: |
+          sudo find . -name "*.log" -type f -exec cp --parents {} ./collected-logs/ \;
+          sudo chown -R $(id -u):$(id -g) ./collected-logs/
+          find ./collected-logs -type f | sort
+
+      - name: Upload collected logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-image-logs
-          path: "**/*.log"
+          path: collected-logs/**/*.log
           if-no-files-found: ignore
+  
   ab-partition-image:
     needs: [build-image, build-prep]
     runs-on: ubuntu-24.04-arm
@@ -636,10 +644,17 @@ jobs:
 
       - name: Upload job logs
         if: always()
+        run: |
+          sudo find . -name "*.log" -type f -exec cp --parents {} ./collected-logs/ \;
+          sudo chown -R $(id -u):$(id -g) ./collected-logs/
+          find ./collected-logs -type f | sort
+
+      - name: Upload collected logs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ab-partition-logs
-          path: "**/*.log"
+          name: build-image-logs
+          path: collected-logs/**/*.log
           if-no-files-found: ignore
           
   upload-logs:
