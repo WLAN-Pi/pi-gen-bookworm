@@ -62,9 +62,13 @@ FIRMWARE_FILE="/home/.device-info/firmware"
 REVISION_FILE="/home/.device-info/revision"
 MODEL_FILE="/home/.device-info/model"
 
+if [ "$(id -u)" -ne 0 ]; then
+    echo "Error: need root to run ..."
+    exit 1
+fi
+
 if [ ! -f "$INPUT_FILE" ]; then
-    echo "Error: encoded file not found at $INPUT_FILE ..."
-    echo "Try running with elevated permissions ..."
+    echo "Error: can't find $INPUT_FILE  ..."
     exit 1
 fi
 
