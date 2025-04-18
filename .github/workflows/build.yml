@@ -715,6 +715,8 @@ jobs:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: ${{ env.git_tag }}
           prerelease: true
+          draft: true
+          title: "WLAN Pi OS ${{ needs.build-prep.outputs.full_version }}"
           files: |
             release-files/*
   
