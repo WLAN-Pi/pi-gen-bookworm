@@ -3,13 +3,13 @@ on:
   workflow_dispatch:
     inputs:
       promote_mode:
-        description: 'Promote an existing RC to final release (instead of building)'
+        description: 'Promote: an existing RC to final release (instead of building, "build:" items do not run)'
         required: false
         type: boolean
         default: false
 
       repos:
-        descriptions: Package cloud repos to include (default is both dev/main)
+        description: Build: package cloud repos to include in new build (default is both dev/main)
         required: true
         type: choice
         options:
@@ -18,13 +18,13 @@ on:
         default: both
 
       codename:
-        description: 'Release codename (use "theanine" for dev until RC is cut)'
+        description: 'Build: release codename (use "theanine" for dev until RC is cut)'
         required: true
         type: string
         default: "theanine"
 
       release_type:
-        description: 'Build type: dev, rc, final, or point'
+        description: 'Build: types: dev, rc, final, or point'
         required: true
         default: 'dev'
         type: choice
@@ -35,29 +35,29 @@ on:
           - point
 
       ab_partition:
-        description: 'Enable A/B partitioning for lite image'
+        description: 'Build: enable A/B partitioning for lite image'
         required: false
         type: boolean
         default: true
 
       ab_partition_suffix:
-        description: 'Suffix for A/B partitioned image filename'
+        description: 'Build: suffix for A/B partitioned image filename'
         required: false
         type: string
         default: 'AB'
 
       point_base:
-        description: 'For point releases: specify base to create point release for (e.g., 2025.04.17)'
+        description: 'Build: for point releases: specify base to create point release for (e.g., 2025.04.17)'
         required: false
         type: string
 
       rc_tag:
-        description: 'To promote specific RC provide full git tag (e.g., 2025.04.17_rc.1)'
+        description: 'Promote: a specific RC: provide full git tag (e.g., 2025.04.17_rc.1)'
         required: false
         type: string
         
       base_date:
-        description: 'Override date for previous build to increment dev/rc sequence track e.g., 2025.04.17_rc.2)'
+        description: 'Promote/build: override date for previous build to increment dev/rc sequence track e.g., 2025.04.17_rc.2)'
         required: false
         type: string
 permissions:
