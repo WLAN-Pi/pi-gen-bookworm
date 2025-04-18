@@ -112,58 +112,157 @@ if [ -s "$SERIAL_FILE" ]; then
 fi
 
 if [ -z "$SERIAL_NUMBER" ]; then
-    if [ ! -c "$SERIAL_DEVICE" ]; then
-        log "ERROR: Serial device $SERIAL_DEVICE not found ..."
-        log "Will generate a random machine-id instead ..."
-        systemd-machine-id-setup
-        cleanup 1
-    fi
-
-    log "Reading serial number from $SERIAL_DEVICE ..."
-
-    if ! stty -F "$SERIAL_DEVICE" 115200 -icrnl -ixon -ixoff -opost -isig -icanon -echo 2>/dev/null; then
-        echo "Error: Failed to configure serial port $SERIAL_DEVICE"
-        cleanup 1
-    fi
-
-    log "Opening serial device for reading ..."
-
-    if ! exec 3< "$SERIAL_DEVICE"; then
-        log "ERROR: Failed to open serial device for reading"
-        cleanup 1
-    fi
-
-    line=""
-    if ! line=$(timeout "$TIMEOUT" cat <&3 | grep -v "^$" | head -n 1); then
-        log "ERROR: Failed to read from serial device"
-        cleanup 1
-    fi
-
-    if [ -z "$line" ]; then
-        log "ERROR: No data received from serial port ..."
-        log "Will generate a random machine-id instead ..."
-        systemd-machine-id-setup
-        cleanup 1
-    fi
-
-    IFS=',' read -r product version candidate hardware error tested rfuA rfuB timeSinceStart usbVoltage rfuC vBatt serial <<< "$line"
-    if [[ -n "$product" ]]; then
-        serial=$(echo "$serial" | tr -d '\r\n')
-        log "Parsed device data: product=$product, version=$version, serial=$serial"
-    else
-        log "ERROR: No data received from serial port ..."
-        log "Will generate a random machine-id instead ..."
-        systemd-machine-id-setup
-        cleanup 1
-    fi
-
-    SERIAL_NUMBER=$serial
-    PRODUCT_ID=$product
-    FIRMWARE=$candidate
-    REVISION=$hardware
+    MAX_ATTEMPTS=5
+    CURRENT_ATTEMPT=1
+    RETRY_DELAY=1
+    SUCCESS=false
     
-    if [ -z "$SERIAL_NUMBER" ]; then
-        log "ERROR: Failed to extract serial number from data ..."
+    log "Beginning serial port read attempts (max $MAX_ATTEMPTS attempts with $RETRY_DELAY second delays) ..."
+
+    while [ $CURRENT_ATTEMPT -le $MAX_ATTEMPTS ] && [ "$SUCCESS" = "false" ]; do
+        log "Attempt $CURRENT_ATTEMPT of $MAX_ATTEMPTS to read from serial port ..."
+
+        if [ ! -c "$SERIAL_DEVICE" ]; then
+            log "WARNING: Serial device $SERIAL_DEVICE not found on attempt $CURRENT_ATTEMPT ..."
+            CURRENT_ATTEMPT=$((CURRENT_ATTEMPT+1))
+            
+            if [ $CURRENT_ATTEMPT -le $MAX_ATTEMPTS ]; then
+                log "Waiting $RETRY_DELAY seconds before retry ..."
+                sleep $RETRY_DELAY
+                continue
+            else
+                log "ERROR: Serial device $SERIAL_DEVICE not found after $MAX_ATTEMPTS attempts ..."
+                log "Will generate a random machine-id instead ..."
+                systemd-machine-id-setup
+                cleanup 1
+            fi
+        fi
+
+        log "Reading serial number from $SERIAL_DEVICE ..."
+
+        if ! stty -F "$SERIAL_DEVICE" 115200 -icrnl -ixon -ixoff -opost -isig -icanon -echo 2>/dev/null; then
+            log "WARNING: Failed to configure serial port $SERIAL_DEVICE on attempt $CURRENT_ATTEMPT"
+            CURRENT_ATTEMPT=$((CURRENT_ATTEMPT+1))
+            
+            if [ $CURRENT_ATTEMPT -le $MAX_ATTEMPTS ]; then
+                log "Waiting $RETRY_DELAY seconds before retry ..."
+                sleep $RETRY_DELAY
+                continue
+            else
+                log "ERROR: Failed to configure serial port after $MAX_ATTEMPTS attempts ..."
+                log "Will generate a random machine-id instead ..."
+                systemd-machine-id-setup
+                cleanup 1
+            fi
+        fi
+
+        log "Opening serial device for reading ..."
+
+        if ! exec 3< "$SERIAL_DEVICE"; then
+            log "WARNING: Failed to open serial device for reading on attempt $CURRENT_ATTEMPT"
+            CURRENT_ATTEMPT=$((CURRENT_ATTEMPT+1))
+            
+            if [ $CURRENT_ATTEMPT -le $MAX_ATTEMPTS ]; then
+                log "Waiting $RETRY_DELAY seconds before retry ..."
+                sleep $RETRY_DELAY
+                continue
+            else
+                log "ERROR: Failed to open serial device after $MAX_ATTEMPTS attempts ..."
+                log "Will generate a random machine-id instead ..."
+                systemd-machine-id-setup
+                cleanup 1
+            fi
+        fi
+
+        line=""
+        if ! line=$(timeout "$TIMEOUT" cat <&3 | grep -v "^$" | head -n 1); then
+            log "WARNING: Failed to read from serial device on attempt $CURRENT_ATTEMPT"
+            exec 3<&-  
+            CURRENT_ATTEMPT=$((CURRENT_ATTEMPT+1))
+            
+            if [ $CURRENT_ATTEMPT -le $MAX_ATTEMPTS ]; then
+                log "Waiting $RETRY_DELAY seconds before retry ..."
+                sleep $RETRY_DELAY
+                continue
+            else
+                log "ERROR: Failed to read from serial device after $MAX_ATTEMPTS attempts ..."
+                log "Will generate a random machine-id instead ..."
+                systemd-machine-id-setup
+                cleanup 1
+            fi
+        fi
+
+        if [ -z "$line" ]; then
+            log "WARNING: No data received from serial port on attempt $CURRENT_ATTEMPT ..."
+            exec 3<&-  
+            CURRENT_ATTEMPT=$((CURRENT_ATTEMPT+1))
+            
+            if [ $CURRENT_ATTEMPT -le $MAX_ATTEMPTS ]; then
+                log "Waiting $RETRY_DELAY seconds before retry ..."
+                sleep $RETRY_DELAY
+                continue
+            else
+                log "ERROR: No data received from serial port after $MAX_ATTEMPTS attempts ..."
+                log "Will generate a random machine-id instead ..."
+                systemd-machine-id-setup
+                cleanup 1
+            fi
+        fi
+
+        IFS=',' read -r product version candidate hardware error tested rfuA rfuB timeSinceStart usbVoltage rfuC vBatt serial <<< "$line"
+        if [[ -n "$product" ]]; then
+            serial=$(echo "$serial" | tr -d '\r\n')
+            log "Parsed device data: product=$product, version=$version, serial=$serial"
+            SUCCESS=true
+        else
+            log "WARNING: Failed to parse product ID from data on attempt $CURRENT_ATTEMPT ..."
+            exec 3<&-  
+            CURRENT_ATTEMPT=$((CURRENT_ATTEMPT+1))
+            
+            if [ $CURRENT_ATTEMPT -le $MAX_ATTEMPTS ]; then
+                log "Waiting $RETRY_DELAY seconds before retry ..."
+                sleep $RETRY_DELAY
+                continue
+            else
+                log "ERROR: Failed to parse product ID after $MAX_ATTEMPTS attempts ..."
+                log "Will generate a random machine-id instead ..."
+                systemd-machine-id-setup
+                cleanup 1
+            fi
+        fi
+
+        SERIAL_NUMBER=$serial
+        PRODUCT_ID=$product
+        FIRMWARE=$candidate
+        REVISION=$hardware
+
+        if [ -z "$SERIAL_NUMBER" ]; then
+            log "WARNING: Failed to extract serial number from data on attempt $CURRENT_ATTEMPT ..."
+            exec 3<&- 
+            CURRENT_ATTEMPT=$((CURRENT_ATTEMPT+1))
+            
+            if [ $CURRENT_ATTEMPT -le $MAX_ATTEMPTS ]; then
+                log "Waiting $RETRY_DELAY seconds before retry ..."
+                sleep $RETRY_DELAY
+                continue
+            else
+                log "ERROR: Failed to extract serial number after $MAX_ATTEMPTS attempts ..."
+                log "Will generate a random machine-id instead ..."
+                systemd-machine-id-setup
+                cleanup 1
+            fi
+        fi
+
+        log "Successfully read serial number on attempt $CURRENT_ATTEMPT!"
+        break
+    done
+
+    if [ -e /proc/$$/fd/3 ]; then
+        exec 3<&-
+    fi
+
+    if [ "$SUCCESS" = "false" ]; then
+        log "ERROR: Failed to read serial number after $MAX_ATTEMPTS attempts ..."
         log "Will generate a random machine-id instead ..."
         systemd-machine-id-setup
         cleanup 1
