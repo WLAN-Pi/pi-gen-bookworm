@@ -9,7 +9,7 @@ on:
         default: false
 
       repos:
-        description: Build: package cloud repos to include in new build (default is both dev/main)
+        description: 'Build: package cloud repos to include in new build (default is both dev/main)'
         required: true
         type: choice
         options:
