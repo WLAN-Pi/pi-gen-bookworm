@@ -57,12 +57,12 @@ echo "=== Setting WLAN Pi version information ==="
 echo "VERSION=${WLANPI_VERSION}" > /etc/wlanpi-release
 chmod 644 /etc/wlanpi-release 
 
-echo "=== Updating OS release information ==="
+echo "=== Updating /etc/os-release release information ==="
 echo "Original /etc/os-release content:"
 cat /etc/os-release
 
 # Update os-release file with WLAN Pi specific information
-sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="WLAN Pi GNU\/Linux 12 (bookworm)"/' /etc/os-release
+sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"WLAN Pi GNU\/Linux 12 (${WLANPI_CODENAME})\"/" /etc/os-release
 sed -i 's/^NAME=.*/NAME="WLAN Pi GNU\/Linux"/' /etc/os-release 
 sed -i 's|^HOME_URL=.*|HOME_URL="${WLANPI_HOME_URL}"|' /etc/os-release
 sed -i 's|^SUPPORT_URL=.*|SUPPORT_URL="${WLANPI_SUPPORT_URL}"|' /etc/os-release
@@ -72,7 +72,7 @@ sed -i 's/^VERSION_CODENAME=.*/VERSION_CODENAME=${WLANPI_CODENAME}/' /etc/os-rel
 echo "Updated /etc/os-release content:"
 cat /etc/os-release
 
-echo "=== OS Release Update Complete ==="
+echo "=== /etc/os-release update uomplete ==="
 EOF
 
 chmod +x "${ROOTFS_DIR}/tmp/update-os-release.sh"
