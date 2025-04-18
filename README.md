@@ -20,7 +20,7 @@ Release cadence: Irregular (as needed)
 
 Codenames:
 
-Stored in `/etc/wlanpi-codename` and `/etc/os-release`
+Stored in `/etc/os-release`
 
 Examples:
 

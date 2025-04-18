@@ -45,14 +45,33 @@ on_chroot <<CHEOF
 	echo "kernel.panic = 5" >> /etc/sysctl.conf
 CHEOF
 
-# Need to use EOF instead of CHEOF for variable expansion
-on_chroot << EOF
-    echo "VERSION=${WLANPI_VERSION}" > /etc/wlanpi-release
-    echo "${WLANPI_CODENAME}" > /etc/wlanpi-codename
-    echo "WLANPI_CODENAME=${WLANPI_CODENAME}" >> /etc/os-release
-    chown root:root /etc/wlanpi-release /etc/wlanpi-codename
-    chmod 644 /etc/wlanpi-release /etc/wlanpi-codename
+cat > "${ROOTFS_DIR}/tmp/update-os-release.sh" << EOF
+#!/bin/bash
+# Create wlanpi-release and wlanpi-codename files
+echo "VERSION=${WLANPI_VERSION}" > /etc/wlanpi-release
+chmod 644 /etc/wlanpi-release /etc/wlanpi-codename
+
+# Update os-release file with WLAN Pi specific information
+sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="WLAN Pi GNU\/Linux 12 (bookworm)"/' /etc/os-release
+sed -i 's/^NAME=.*/NAME="WLAN Pi GNU\/Linux"/' /etc/os-release 
+sed -i 's|^HOME_URL=.*|HOME_URL="${WLANPI_HOME_URL}"|' /etc/os-release
+sed -i 's|^SUPPORT_URL=.*|SUPPORT_URL="${WLANPI_SUPPORT_URL}"|' /etc/os-release
+sed -i 's|^BUG_REPORT_URL=.*|BUG_REPORT_URL="${WLANPI_BUG_REPORT_URL}"|' /etc/os-release
+sed -i 's/^VERSION_CODENAME=.*/VERSION_CODENAME=${WLANPI_CODENAME}/' /etc/os-release
 EOF
+
+chmod +x "${ROOTFS_DIR}/tmp/update-os-release.sh"
+
+on_chroot << EOF
+WLANPI_VERSION="${WLANPI_VERSION}" \
+WLANPI_CODENAME="${WLANPI_CODENAME}" \
+WLANPI_HOME_URL="${WLANPI_HOME_URL}" \
+WLANPI_SUPPORT_URL="${WLANPI_SUPPORT_URL}" \
+WLANPI_BUG_REPORT_URL="${WLANPI_BUG_REPORT_URL}" \
+/tmp/update-os-release.sh
+EOF
+
+rm -f "${ROOTFS_DIR}/tmp/update-os-release.sh"
 
 # Add our custom sudoers file
 copy_overlay /etc/sudoers.d/wlanpidump -o root -g root -m 440
@@ -69,4 +88,5 @@ install -m 644 files/.tmux.conf "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.tmux.con
 
 on_chroot << EOF
 chown ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.vimrc
+chown ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.tmux.conf
 EOF
