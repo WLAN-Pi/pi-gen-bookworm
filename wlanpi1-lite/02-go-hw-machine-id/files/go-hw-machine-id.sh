@@ -100,7 +100,7 @@ log "Starting go hardware machine-id encoder ..."
 
 mkdir -p "$(dirname "$LOG_FILE")"
 mkdir -p "$DEVICE_INFO_DIR"
-chmod 750 "$DEVICE_INFO_DIR"
+chmod 755 "$DEVICE_INFO_DIR"
 
 if [ -s "$SERIAL_FILE" ]; then
     log "Serial number file already exists, using existing serial ..."
