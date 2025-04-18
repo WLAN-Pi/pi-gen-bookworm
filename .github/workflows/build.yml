@@ -318,7 +318,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Set up Dependencies
+      - name: Set up dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -345,9 +345,9 @@ jobs:
             binfmt-support \
             systemd-container \
             arch-test
-      - name: Grant Execution Permissions
+      - name: Grant execution permissions
         run: chmod +x build.sh
-      - name: Run Build Script as Root
+      - name: Run build script as root
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
           WLANPI_VERSION: ${{ needs.build-prep.outputs.version }}
