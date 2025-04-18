@@ -1,9 +1,8 @@
 [Unit]
 Description=Set machine-id from WLAN Pi Go hardware serial number
 DefaultDependencies=no
-After=systemd-remount-fs.service
-Before=systemd-sysusers.service sysinit.target shutdown.target
-ConditionPathIsEmpty=/etc/machine-id
+After=systemd-remount-fs.service ttyAMA0.device
+Before=systemd-machine-id-commit.service
 Conflicts=shutdown.target
 
 [Service]
