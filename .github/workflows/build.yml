@@ -77,6 +77,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 
+
       - name: Identify RC to promote
         id: identify-rc
         run: |
@@ -128,6 +129,7 @@ jobs:
           echo "final_version=$FINAL_VERSION" >> $GITHUB_OUTPUT
           echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
           echo "codename=$CODENAME" >> $GITHUB_OUTPUT
+
       - name: Download RC assets
         run: |
           mkdir -p download promoted
@@ -137,6 +139,7 @@ jobs:
             echo "No files downloaded from release $RC_TAG"
             exit 1
           fi
+
       - name: Rename assets for promotion
         run: |
           RC_TAG="${{ steps.identify-rc.outputs.rc_tag }}"
@@ -167,6 +170,7 @@ jobs:
             fi
           done
           popd
+
       - name: Debug promotion info
         run: |
           echo "RC Tag: ${{ steps.identify-rc.outputs.rc_tag }}"
@@ -174,6 +178,7 @@ jobs:
           echo "Full Version: ${{ steps.identify-rc.outputs.full_version }}"
           echo "Downloaded files:"
           ls -la download/
+
       - name: Create promoted release if we're running from the default branch
         if: ${{ github.event.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
         uses: "joshschmelzle/action-automatic-releases@1c60c2dcfeb5382b81099310bdb4a376dc7753a0"
@@ -183,6 +188,7 @@ jobs:
           prerelease: false
           files: |
             promoted/*
+
       - name: Upload job logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -199,6 +205,11 @@ jobs:
       full_version: ${{ steps.version.outputs.full_version }}
       codename: ${{ steps.version.outputs.codename }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
+
       - name: Check if pkg repos input choice was made
         run: |
           CHOICE=${{ github.event.inputs.repos }}
@@ -207,6 +218,7 @@ jobs:
             exit 1
           fi
           echo "REPOS=$CHOICE" >> $GITHUB_ENV
+
       - name: Set pkg repos choice variable
         id: repos
         run: |
@@ -294,6 +306,7 @@ jobs:
           echo "Full version with codename: $FULL_VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
+
       - name: Upload job logs
         if: always()
         run: |
@@ -310,6 +323,7 @@ jobs:
           name: build-prep-job-logs 
           path: collected-logs/**/*.log
           if-no-files-found: ignore
+
   build-image:
     if: ${{ github.event.inputs.promote_mode != 'true'  }}
     runs-on: ubuntu-24.04-arm
@@ -318,6 +332,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up dependencies
         run: |
           sudo apt-get update
@@ -347,6 +362,7 @@ jobs:
             arch-test
       - name: Grant execution permissions
         run: chmod +x build.sh
+
       - name: Run build script as root
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
@@ -361,6 +377,7 @@ jobs:
             touch wlanpi2-full/SKIP
           fi
           sudo ./build.sh 2>&1 | tee build_output.log
+
       - name: Calculate version and checksums
         id: vercheck
         run: |
@@ -601,6 +618,7 @@ jobs:
           
           # Cleanup
           rm -f "original.img"
+
       - name: Basic validation of A/B partitioned image
         run: |
           OUTPUT_IMG=$(find ab-partitioned -name "*.img.gz" -print -quit)
