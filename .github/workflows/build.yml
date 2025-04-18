@@ -165,6 +165,13 @@ jobs:
           prerelease: false
           files: |
             promoted/*
+      - name: Upload job logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: promote-release-logs
+          path: "**/*.log"
+          if-no-files-found: ignore
   build-prep:
     if: ${{ github.event.inputs.release_type != 'promote' }}
     runs-on: ubuntu-24.04-arm
@@ -243,6 +250,13 @@ jobs:
           echo "Full version with codename: $FULL_VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
+      - name: Upload job logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-prep-logs
+          path: "**/*.log"
+          if-no-files-found: ignore
   build-image:
     if: ${{ github.event.inputs.release_type != 'promote' }}
     runs-on: ubuntu-24.04-arm
@@ -416,7 +430,14 @@ jobs:
         with:
           name: wlanpi-os-all-build-artifacts-${{ env.version }}
           path: deploy/
-
+      
+      - name: Upload job logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-image-logs
+          path: "**/*.log"
+          if-no-files-found: ignore
   ab-partition-image:
     needs: [build-image, build-prep]
     runs-on: ubuntu-24.04-arm
@@ -575,8 +596,7 @@ jobs:
       - name: List artifacts for verification
         run: |
           echo "A/B partitioned artifacts ready:"
-          ls -la ab-partitioned/
-  
+          ls -la ab-partitioned/ 
   release:
     needs: [ab-partition-image, build-image, build-prep]
     runs-on: ubuntu-24.04-arm
@@ -613,6 +633,14 @@ jobs:
           prerelease: true
           files: |
             release-files/*
+
+      - name: Upload job logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ab-partition-logs
+          path: "**/*.log"
+          if-no-files-found: ignore
           
   upload-logs:
     runs-on: ubuntu-24.04-arm
@@ -623,18 +651,27 @@ jobs:
       - promote-release
     if: ${{ always() }}
     steps:
-      - name: Debug working directory
+      - name: Download all log artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-logs"
+          path: all-logs
+          
+      - name: Combine logs
         run: |
-          echo "Current directory: $(pwd)"
-          echo "Repository directory: $GITHUB_WORKSPACE"
-          echo "Directory contents:"
-          ls -la
-      - name: Upload any logs found
+          echo "Downloaded logs:"
+          find all-logs -type f | sort
+          
+          mkdir -p combined-logs
+          cp -r all-logs/*/* combined-logs/ || echo "No logs found to combine"
+          
+      - name: Upload combined logs
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}-buildlogs
-          path: "**/*.log"
-      
+          name: wlanpi-os-logs
+          path: "combined-logs/**/*.log"
+          if-no-files-found: ignore
+  
   slack-workflow-status:
     if: ${{ always() && (github.event.inputs.release_type != 'promote') && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
     name: Post Build Workflow Status to Slack
