@@ -605,14 +605,23 @@ jobs:
           prerelease: true
           files: |
             release-files/*
-
+          
+  upload-logs:
+    runs-on: ubuntu-24.04-arm
+    if: ${{ always() }}
+    steps:
+      - name: Debug working directory
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Repository directory: $GITHUB_WORKSPACE"
+          echo "Directory contents:"
+          ls -la
       - name: Upload any logs found
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}-buildlogs
           path: "**/*.log"
-    
+      
   slack-workflow-status:
     if: ${{ always() && (github.event.inputs.release_type != 'promote') && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
     name: Post Build Workflow Status to Slack
