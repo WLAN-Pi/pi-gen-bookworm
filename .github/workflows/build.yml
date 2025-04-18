@@ -674,6 +674,8 @@ jobs:
   release:
     needs: [ab-partition-image, build-image, build-prep]
     runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: write
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
