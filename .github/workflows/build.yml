@@ -631,11 +631,13 @@ jobs:
           name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}-buildlogs
           path: "**/*.log"
     
-  slack-workflow-release-status:
+  slack-workflow-status:
     if: ${{ always() && (github.event.inputs.release_type != 'promote') && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
     name: Post Build Workflow Status to Slack
     needs:
       - build-image
+      - ab-partition-image
+      - release
     runs-on: 'ubuntu-24.04'
     steps:
       - name: Slack Workflow Notification
