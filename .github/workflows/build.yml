@@ -9,12 +9,12 @@ on:
         default: false
 
       rc_tag:
-        description: '🔄 PROMOTE: a specific RC: requires full git tag (format is YYYY.MM.DD_rc.N e.g., 2025.04.18_rc.1)'
+        description: '🔄 PROMOTE: a specific RC: requires full git tag (format is YYYY.MM.DD-rc.N e.g., 2025.04.19-rc.1)'
         required: false
         type: string
         
       base_date:
-        description: '🔄/🔨 PROMOTE/BUILD: override todays date (format: YYYY.MM.DD, e.g., 2025.04.18) to continue incremental versioning'
+        description: '🔄/🔨 PROMOTE/BUILD: override todays date (format: YYYY.MM.DD, e.g., 2025.04.19) to continue incremental versioning'
         required: false
         type: string
 
@@ -63,7 +63,7 @@ on:
         default: 'AB'
 
       point_base:
-        description: '🔨 BUILD: for point releases (2025.04.18.1): specify base to create patch release for (e.g., 2025.04.18)'
+        description: '🔨 BUILD: for point releases (2025.04.19.1): specify base to create patch release for (e.g., 2025.04.19)'
         required: false
         type: string
 permissions:
@@ -172,7 +172,7 @@ jobs:
             if [ -f "$FILE" ]; then
               EXTENSION="${FILE##*.}"
               BASE_NAME=$(basename "$FILE" .$EXTENSION)
-              RC_PART=$(echo "$BASE_NAME" | grep -o '[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}[_~]rc\.[0-9]*' || echo "")
+              RC_PART=$(echo "$BASE_NAME" | grep -o '[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}-rc\.[0-9]*' || echo "")
               if [ -n "$RC_PART" ]; then
                 NEW_BASE_NAME="${BASE_NAME/$RC_PART/$FINAL_VERSION}"
                 NEW_NAME="$NEW_BASE_NAME.$EXTENSION"
@@ -254,6 +254,9 @@ jobs:
       - name: Set version variables
         id: version
         run: |
+          # Version format: YYYY.MM.DD-type.N-codename
+          # Example: 2025.04.19-dev.1-theanine
+
           CODENAME="${{ github.event.inputs.codename }}"
           echo "codename=$CODENAME" >> $GITHUB_OUTPUT
           if [ -n "${{ github.event.inputs.base_date }}" ]; then
@@ -281,19 +284,25 @@ jobs:
           elif [ "$BUILD_TYPE" = "final" ]; then
             VERSION="$BASE_VERSION"
           else
+            LATEST_SEQ=$(git tag -l "${BASE_VERSION}-${BUILD_TYPE}.*" | sort -V | tail -n1)
+
+            echo "Looking for existing tags with pattern:"
+            echo "${BASE_VERSION}-${BUILD_TYPE}.*"
+
+            # For backward compatibility during transition, also check old patterns
             LATEST_SEQ_UNDERSCORE=$(git tag -l "${BASE_VERSION}_${BUILD_TYPE}.*" | sort -V | tail -n1)
             LATEST_SEQ_TILDE=$(git tag -l "${BASE_VERSION}~${BUILD_TYPE}.*" | sort -V | tail -n1)
-            
-            echo "Looking for existing tags with patterns:"
-            echo "${BASE_VERSION}_${BUILD_TYPE}.*"
-            echo "${BASE_VERSION}~${BUILD_TYPE}.*"
-            
-            if [ -n "$LATEST_SEQ_UNDERSCORE" ]; then
+
+            if [ -n "$LATEST_SEQ" ]; then
+              echo "Found tag with hyphen: $LATEST_SEQ"
+            elif [ -n "$LATEST_SEQ_UNDERSCORE" ]; then
               echo "Found tag with underscore: $LATEST_SEQ_UNDERSCORE"
               LATEST_SEQ="$LATEST_SEQ_UNDERSCORE"
+              echo "Converting underscore format to hyphen format for next version"
             elif [ -n "$LATEST_SEQ_TILDE" ]; then
               echo "Found tag with tilde: $LATEST_SEQ_TILDE"
               LATEST_SEQ="$LATEST_SEQ_TILDE"
+              echo "Converting tilde format to hyphen format for next version"
             else
               echo "No existing tags found"
               LATEST_SEQ=""
@@ -303,13 +312,8 @@ jobs:
               SEQ_NUM=1
               echo "Starting new sequence with number 1"
             else
-              if [[ "$LATEST_SEQ" == *"_$BUILD_TYPE."* ]]; then
-                # For tags with underscore format: 2025.04.18_dev.1-theanine
-                CURR_SEQ=$(echo "$LATEST_SEQ" | grep -o "_$BUILD_TYPE\.[0-9]*" | cut -d. -f2)
-              else
-                # For tags with tilde format: 2025.04.18~dev.1-theanine
-                CURR_SEQ=$(echo "$LATEST_SEQ" | grep -o "~$BUILD_TYPE\.[0-9]*" | cut -d. -f2)
-              fi
+              # For tags with hyphen format: 2025.04.19-dev.1-theanine
+              CURR_SEQ=$(echo "$LATEST_SEQ" | grep -o "-$BUILD_TYPE\.[0-9]*" | cut -d. -f2)
               
               if [ -z "$CURR_SEQ" ]; then
                 echo "Failed to extract sequence number from $LATEST_SEQ, defaulting to 1"
@@ -321,8 +325,7 @@ jobs:
               fi
             fi
             
-            # Always use tilde in the VERSION but the tag will convert to underscore
-            VERSION="${BASE_VERSION}~${BUILD_TYPE}.${SEQ_NUM}"
+            VERSION="${BASE_VERSION}-${BUILD_TYPE}.${SEQ_NUM}"
           fi
           FULL_VERSION="${VERSION}-${CODENAME}"
           echo "Version: $BASE_VERSION"
@@ -797,7 +800,7 @@ jobs:
       - name: Prepare git tag from version for pre-release
         run: |
           VERSION="${{ needs.build-prep.outputs.full_version }}"
-          GIT_TAG=$(echo "$VERSION" | sed 's/~/\_/g')
+          GIT_TAG="$VERSION"
           echo "Using git tag: $GIT_TAG"
           echo "git_tag=$GIT_TAG" >> $GITHUB_ENV
 
