@@ -3,23 +3,23 @@ on:
   workflow_dispatch:
     inputs:
       promote_mode:
-        description: 'Promote: an existing RC to final release. by default attempts to promote RC from todays date. ignores inputs from "build:" options'
+        description: '🔄 PROMOTE: Switch to promotion mode (ignores build options)'
         required: false
         type: boolean
         default: false
 
       rc_tag:
-        description: 'Promote: a specific RC: requires full git tag (e.g., 2025.04.18_rc.1)'
+        description: '🔄 PROMOTE: a specific RC: requires full git tag (format is YYYY.MM.DD_rc.N e.g., 2025.04.18_rc.1)'
         required: false
         type: string
         
       base_date:
-        description: 'Promote/build: override todays date with a provided base date from a previous build to increment dev/rc sequence track e.g., 2025.04.18_dev.2)'
+        description: '🔄/🔨 PROMOTE/BUILD: override todays date (format: YYYY.MM.DD, e.g., 2025.04.18) to continue incremental versioning'
         required: false
         type: string
 
       repos:
-        description: 'Build: which package cloud repos to include (default includes both dev/main)'
+        description: '🔨 BUILD: which package cloud repos to include (default includes both dev/main)'
         required: true
         type: choice
         options:
@@ -28,13 +28,13 @@ on:
         default: both
 
       codename:
-        description: 'Build: release codename (use "theanine" for dev until RC is cut)'
+        description: '🔨 BUILD: release codename ([development codename])'
         required: true
         type: string
         default: "theanine"
 
-      release_type:
-        description: 'Build: types: dev, rc, final, or point'
+      build_type:
+        description: '🔨 BUILD: type of release to create (dev=development build, rc=release candidate, final=stable release, point=patch release [requires point_base])'
         required: true
         default: 'dev'
         type: choice
@@ -45,25 +45,25 @@ on:
           - point
 
       skip_full_image:
-        description: 'Build: lite image only'
+        description: '🔨 BUILD: lite image only'
         required: false
         type: boolean
         default: false
       
       ab_partition:
-        description: 'Build: post process lite image for A/B partitioning'
+        description: '🔨 BUILD: post process lite image for A/B partitioning'
         required: false
         type: boolean
         default: true
 
       ab_partition_suffix:
-        description: 'Build: filename suffix for A/B partitioned image'
+        description: '🔨 BUILD: filename suffix for A/B partitioned image'
         required: false
         type: string
         default: 'AB'
 
       point_base:
-        description: 'Build: for point releases (2025.04.18.1): specify base to create point release for (e.g., 2025.04.18)'
+        description: '🔨 BUILD: for point releases (2025.04.18.1): specify base to create point release for (e.g., 2025.04.18)'
         required: false
         type: string
 permissions:
@@ -262,8 +262,8 @@ jobs:
             BASE_VERSION=$(date '+%Y.%m.%d')
             echo "Using today's date: $BASE_VERSION"
           fi
-          RELEASE_TYPE="${{ github.event.inputs.release_type }}"
-          if [ "$RELEASE_TYPE" = "point" ]; then
+          BUILD_TYPE="${{ github.event.inputs.build_type }}"
+          if [ "$BUILD_TYPE" = "point" ]; then
             POINT_BASE="${{ github.event.inputs.point_base }}"
             if [ -z "$POINT_BASE" ]; then
               echo "Error: point_base is required for point releases"
@@ -277,15 +277,15 @@ jobs:
               POINT_NUM=$((CURR_POINT + 1))
             fi
             VERSION="${POINT_BASE}.${POINT_NUM}"
-          elif [ "$RELEASE_TYPE" = "final" ]; then
+          elif [ "$BUILD_TYPE" = "final" ]; then
             VERSION="$BASE_VERSION"
           else
-            LATEST_SEQ_UNDERSCORE=$(git tag -l "${BASE_VERSION}_${RELEASE_TYPE}.*" | sort -V | tail -n1)
-            LATEST_SEQ_TILDE=$(git tag -l "${BASE_VERSION}~${RELEASE_TYPE}.*" | sort -V | tail -n1)
+            LATEST_SEQ_UNDERSCORE=$(git tag -l "${BASE_VERSION}_${BUILD_TYPE}.*" | sort -V | tail -n1)
+            LATEST_SEQ_TILDE=$(git tag -l "${BASE_VERSION}~${BUILD_TYPE}.*" | sort -V | tail -n1)
             
             echo "Looking for existing tags with patterns:"
-            echo "${BASE_VERSION}_${RELEASE_TYPE}.*"
-            echo "${BASE_VERSION}~${RELEASE_TYPE}.*"
+            echo "${BASE_VERSION}_${BUILD_TYPE}.*"
+            echo "${BASE_VERSION}~${BUILD_TYPE}.*"
             
             if [ -n "$LATEST_SEQ_UNDERSCORE" ]; then
               echo "Found tag with underscore: $LATEST_SEQ_UNDERSCORE"
@@ -302,12 +302,12 @@ jobs:
               SEQ_NUM=1
               echo "Starting new sequence with number 1"
             else
-              if [[ "$LATEST_SEQ" == *"_$RELEASE_TYPE."* ]]; then
+              if [[ "$LATEST_SEQ" == *"_$BUILD_TYPE."* ]]; then
                 # For tags with underscore format: 2025.04.18_dev.1-theanine
-                CURR_SEQ=$(echo "$LATEST_SEQ" | grep -o "_$RELEASE_TYPE\.[0-9]*" | cut -d. -f2)
+                CURR_SEQ=$(echo "$LATEST_SEQ" | grep -o "_$BUILD_TYPE\.[0-9]*" | cut -d. -f2)
               else
                 # For tags with tilde format: 2025.04.18~dev.1-theanine
-                CURR_SEQ=$(echo "$LATEST_SEQ" | grep -o "~$RELEASE_TYPE\.[0-9]*" | cut -d. -f2)
+                CURR_SEQ=$(echo "$LATEST_SEQ" | grep -o "~$BUILD_TYPE\.[0-9]*" | cut -d. -f2)
               fi
               
               if [ -z "$CURR_SEQ" ]; then
@@ -321,7 +321,7 @@ jobs:
             fi
             
             # Always use tilde in the VERSION but the tag will convert to underscore
-            VERSION="${BASE_VERSION}~${RELEASE_TYPE}.${SEQ_NUM}"
+            VERSION="${BASE_VERSION}~${BUILD_TYPE}.${SEQ_NUM}"
           fi
           FULL_VERSION="${VERSION}-${CODENAME}"
           echo "Version: $VERSION"
