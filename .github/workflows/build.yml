@@ -390,7 +390,7 @@ jobs:
       
       - name: Print build variables
         run: |
-          echo "GitHub Ref Name: ${{ github.ref_name }}"
+          echo "GITHUB_REF_NAME: ${{ github.ref_name }}"
           echo "WLANPI_VERSION: ${{ needs.build-prep.outputs.version }}"
           echo "WLANPI_CODENAME: ${{ needs.build-prep.outputs.codename }}"
           echo "WLANPI_FULL_VERSION: ${{ needs.build-prep.outputs.full_version }}"
