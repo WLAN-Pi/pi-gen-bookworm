@@ -793,8 +793,10 @@ jobs:
     
       - name: Create GitHub pre-release
         run: |
+          # if you pass in --draft a git tag won't be created
+          # until the release is manually created in GH
+          # you probably don't want --draft here.
           gh release create ${{ env.git_tag }} \
-            --draft \
             --prerelease \
             --title "WLAN Pi OS ${{ needs.build-prep.outputs.full_version }}" \
             release-files/*
