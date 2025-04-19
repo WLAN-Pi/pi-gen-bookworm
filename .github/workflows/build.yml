@@ -9,17 +9,17 @@ on:
         default: false
 
       rc_tag:
-        description: 'Promote: a specific RC: provide full git tag (e.g., 2025.04.18_rc.1)'
+        description: 'Promote: a specific RC: requires full git tag (e.g., 2025.04.18_rc.1)'
         required: false
         type: string
         
       base_date:
-        description: 'Promote/build: override date for previous build to increment dev/rc sequence track e.g., 2025.04.18_rc.2)'
+        description: 'Promote/build: override todays date with a provided base date from a previous build to increment dev/rc sequence track e.g., 2025.04.18_dev.2)'
         required: false
         type: string
 
       repos:
-        description: 'Build: package cloud repos to include in new build (default is both dev/main)'
+        description: 'Build: which package cloud repos to include (default includes both dev/main)'
         required: true
         type: choice
         options:
@@ -45,19 +45,19 @@ on:
           - point
 
       skip_full_image:
-        description: 'Build: skip building the full image, build only lite image'
+        description: 'Build: lite image only'
         required: false
         type: boolean
         default: false
       
       ab_partition:
-        description: 'Build: enable A/B partitioning for lite image'
+        description: 'Build: post process lite image for A/B partitioning'
         required: false
         type: boolean
         default: true
 
       ab_partition_suffix:
-        description: 'Build: suffix for A/B partitioned image filename'
+        description: 'Build: filename suffix for A/B partitioned image'
         required: false
         type: string
         default: 'AB'
