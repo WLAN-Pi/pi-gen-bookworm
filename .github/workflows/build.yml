@@ -250,6 +250,7 @@ jobs:
           else
             echo 'INCLUDE_PACKAGECLOUD_DEV=0' >> $GITHUB_OUTPUT
           fi
+
       - name: Set version variables
         id: version
         run: |
@@ -741,6 +742,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: '0'
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -757,26 +759,36 @@ jobs:
           echo "Release files prepared:"
           ls -la release-files/
 
-      - name: Prep Create GitHub pre-release if we're running from the default branch
+      - name: Prep create GitHub pre-release if we're running from the default branch
         if: ${{ github.event.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
         run: |
           VERSION="${{ needs.build-prep.outputs.full_version }}"
           GIT_TAG=$(echo "$VERSION" | sed 's/~/\_/g')
           echo "Using git tag: $GIT_TAG"
           echo "git_tag=$GIT_TAG" >> $GITHUB_ENV
-          
+          git tag $GIT_TAG
+          git push origin $GIT_TAG
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+      - name: Debug GitHub token permissions
+        run: gh api /user --method GET
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create GitHub pre-release
         if: ${{ github.event.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
-        uses: "joshschmelzle/action-automatic-releases@1c60c2dcfeb5382b81099310bdb4a376dc7753a0"
+        uses: softprops/action-gh-release@v2
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: ${{ env.git_tag }}
-          prerelease: true
+          tag_name: ${{ env.git_tag }}
+          name: "WLAN Pi OS ${{ needs.build-prep.outputs.full_version }}"
           draft: true
-          title: "WLAN Pi OS ${{ needs.build-prep.outputs.full_version }}"
-          files: |
-            release-files/*
-  
+          prerelease: true
+          generate_release_notes: true
+          files: release-files/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Upload job logs
         if: always()
         run: |
@@ -845,7 +857,7 @@ jobs:
       - release
     runs-on: 'ubuntu-24.04'
     steps:
-      - name: Slack Workflow Notification
+      - name: Slack workflow notification
         uses: Gamesight/slack-workflow-status@master
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
@@ -858,7 +870,7 @@ jobs:
       - promote-release
     runs-on: 'ubuntu-24.04'
     steps:
-      - name: Slack Workflow Notification
+      - name: Slack workflow notification
         uses: Gamesight/slack-workflow-status@master
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
