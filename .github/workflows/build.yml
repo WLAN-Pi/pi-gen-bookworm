@@ -382,6 +382,7 @@ jobs:
             jq \
             binfmt-support \
             systemd-container \
+            syft \
             arch-test
 
       - name: Sudo build images
