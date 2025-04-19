@@ -327,6 +327,7 @@ jobs:
           FULL_VERSION="${VERSION}-${CODENAME}"
           echo "Version: $VERSION"
           echo "Full version with codename: $FULL_VERSION"
+
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
 
@@ -384,7 +385,16 @@ jobs:
             systemd-container \
             arch-test
           
+          # requires for sbom generation
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+      
+      - name: Print build variables
+        run: |
+          echo "GitHub Ref Name: ${{ github.ref_name }}"
+          echo "WLANPI_VERSION: ${{ needs.build-prep.outputs.version }}"
+          echo "WLANPI_CODENAME: ${{ needs.build-prep.outputs.codename }}"
+          echo "WLANPI_FULL_VERSION: ${{ needs.build-prep.outputs.full_version }}"
+          echo "SKIP_FULL_IMAGE: ${{ github.event.inputs.skip_full_image }}"
 
       - name: Sudo build images
         id: build_images
