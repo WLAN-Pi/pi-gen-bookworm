@@ -399,8 +399,16 @@ jobs:
             touch wlanpi2-full/SKIP
           fi
           sudo ./build.sh 2>&1 | tee build_output.log
+
+          echo "========== BUILD OUTPUT FILES =========="
+          echo "Contents of deploy directory:"
+          find deploy -type f -exec ls -lh {} \; | sort
+          echo "========================================"
+
+          exit 1
+
           if [ ! -f deploy/*.img.gz ]; then
-            echo "::error::No images were created during build"
+            echo "::error::No images (img.gz) were detected during build"
             exit 1
           fi
         continue-on-error: true
@@ -536,7 +544,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wlanpi-os-${{ env.version }}-info
-          path: processed/wlanpi-os-*.info
+          path: processed/*.info
+
+      - name: Upload info (included package versions)
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-${{ env.version }}-sbom
+          path: processed/*.sbom
 
       # - name: Everything
       #   uses: actions/upload-artifact@v4
