@@ -1,18 +1,13 @@
 [Unit]
 Description=Set machine-id from WLAN Pi Go hardware serial number
-DefaultDependencies=no
-After=systemd-remount-fs.service ttyAMA0.device systemd-udevd.service
+After=network.target multi-user.target
 Before=systemd-machine-id-commit.service
-Conflicts=shutdown.target
-Wants=dev-ttyAMA0.device
-Requires=dev-ttyAMA0.device
-
 
 [Service]
-Type=oneshot
+Type=forking
 RemainAfterExit=yes
-ExecStart=/usr/local/sbin/go-hw-machine-id.sh
+ExecStart=/bin/bash -c '/usr/bin/sudo -u root /usr/local/sbin/go-hw-machine-id.sh'
 TimeoutSec=30
 
 [Install]
-WantedBy=sysinit.target
+WantedBy=multi-user.target

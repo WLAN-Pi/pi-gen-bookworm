@@ -821,6 +821,7 @@ jobs:
   upload-logs:
     runs-on: ubuntu-24.04-arm
     needs:
+      - build-prep
       - build-image
       - ab-partition-image
       - release
