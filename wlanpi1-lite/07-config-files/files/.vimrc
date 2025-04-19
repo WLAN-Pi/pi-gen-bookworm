@@ -1,7 +1,6 @@
 " Basic settings
 set nocompatible                   " Use Vim settings, rather than Vi settings
 syntax enable                      " Enable syntax highlighting
-filetype plugin indent on          " Enable file type detection
 set encoding=utf-8                 " Use UTF-8 encoding
 set fileencoding=utf-8             " Use UTF-8 encoding for written files
 
@@ -23,24 +22,35 @@ highlight StatusLineNC ctermbg=235 ctermfg=242 guibg=#262626 guifg=#6c6c6c
 
 " Cursor visibility
 set cursorline                     " Highlight current line
-" set nocursorline                   " Do not highlight current line
+"set nocursorline                   " Do not highlight current line
 highlight CursorLine cterm=bold ctermbg=234 guibg=Grey15
 highlight Cursor ctermfg=Black ctermbg=Green
 
 " File type specific indentation
+filetype plugin indent on          " Enable file type detection
+
+" Default indentation settings
+set expandtab
+set tabstop=4
+set softtabstop=4
+set shiftwidth=4
+set autoindent
+set smartindent
+
 augroup indentation_settings
     autocmd!
-    " Use spaces for Python
-    autocmd FileType python setlocal expandtab tabstop=4 softtabstop=4 shiftwidth=4
+    " Webdev
+    autocmd FileType html,css,javascript,typescript,json,yaml,yml setlocal expandtab tabstop=2 softtabstop=2 shiftwidth=2
     
-    " Use tabs for Debian control files
+    " Debian
     autocmd BufRead,BufNewFile **/debian/control,**/debian/rules,**/debian/changelog setlocal noexpandtab tabstop=8 softtabstop=8 shiftwidth=8
     
-    " Use tabs for Makefiles
+    " Make
     autocmd FileType make setlocal noexpandtab tabstop=8 shiftwidth=8
+    autocmd BufRead,BufNewFile Makefile,makefile setlocal noexpandtab tabstop=8 shiftwidth=8
     
-    " Use spaces for shell scripts
-    autocmd FileType sh,bash setlocal expandtab tabstop=4 softtabstop=4 shiftwidth=4
+    " Docs and logs
+    autocmd FileType markdown,text,log setlocal expandtab tabstop=2 softtabstop=2 shiftwidth=2
 augroup END
 
 " Search
@@ -60,8 +70,8 @@ set undodir=~/.vim/undodir         " Where to save undo histories
 set history=1000                   " Command history
 
 " Navigation and editing
-set scrolloff=15                   " Keep 8 lines above/below cursor when scrolling
-set sidescrolloff=8                " Keep 8 columns left/right of cursor when scrolling horizontally
+nnoremap <leader>zz :let &scrolloff=999-&scrolloff<CR>
+set scrolloff=999                  " Keep center except when at beginning or end of the file
 set backspace=indent,eol,start     " Make backspace work as expected
 set whichwrap+=<,>,h,l             " Allow specified keys to move to the previous/next line
 

@@ -385,7 +385,8 @@ jobs:
       - name: Grant execution permissions
         run: chmod +x build.sh
 
-      - name: Run build script as root
+      - name: Sudo build images
+        id: build_images
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
           WLANPI_VERSION: ${{ needs.build-prep.outputs.version }}
@@ -399,12 +400,17 @@ jobs:
             touch wlanpi2-full/SKIP
           fi
           sudo ./build.sh 2>&1 | tee build_output.log
+          if [ ! -f deploy/*.img.gz ]; then
+            echo "::error::No images were created during build"
+            exit 1
+          fi
+        continue-on-error: true
 
-      - name: Check build errors
+      - name: Verify build images outcome
         run: |
-          if grep -q "Build failed" build_output.log; then
-            echo "::error::Build process failed, see logs for details"
-            grep -A 2 -B 15 "Build failed" build_output.log
+          if [ "${{ steps.build_images.outcome }}" != "success" ]; then
+            echo "::error::Build process failed, skipping packaging steps"
+            grep -A 5 -B 15 "Build failed" build_output.log
             exit 1
           fi
 
