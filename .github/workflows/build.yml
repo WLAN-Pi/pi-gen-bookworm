@@ -122,8 +122,8 @@ jobs:
             fi
           fi
 
-          RC_VERSION=$(echo "$LATEST_RC" | sed 's/_rc\.[0-9]*$//')
-          FINAL_VERSION="${RC_VERSION//_/.}"
+          RC_VERSION=$(echo "$LATEST_RC" | grep -o '^[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}')
+          FINAL_VERSION="$RC_VERSION"
 
           RC_RELEASE=$(gh release view "$LATEST_RC" --json name 2>/dev/null || echo "")
           if [ -z "$RC_RELEASE" ]; then
@@ -172,7 +172,7 @@ jobs:
             if [ -f "$FILE" ]; then
               EXTENSION="${FILE##*.}"
               BASE_NAME=$(basename "$FILE" .$EXTENSION)
-              RC_PART=$(echo "$BASE_NAME" | grep -o '[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}~rc\.[0-9]*' || echo "")
+              RC_PART=$(echo "$BASE_NAME" | grep -o '[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}[_~]rc\.[0-9]*' || echo "")
               if [ -n "$RC_PART" ]; then
                 NEW_BASE_NAME="${BASE_NAME/$RC_PART/$FINAL_VERSION}"
                 NEW_NAME="$NEW_BASE_NAME.$EXTENSION"
@@ -325,7 +325,7 @@ jobs:
             VERSION="${BASE_VERSION}~${BUILD_TYPE}.${SEQ_NUM}"
           fi
           FULL_VERSION="${VERSION}-${CODENAME}"
-          echo "Version: $VERSION"
+          echo "Version: $BASE_VERSION"
           echo "Full version with codename: $FULL_VERSION"
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -344,7 +344,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-${{ needs.build-prep.outputs.version }}_build-preps-logs 
+          name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}_build-preps-logs 
           path: collected-logs/**/*.log
           if-no-files-found: ignore
 
@@ -588,7 +588,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-${{ needs.build-prep.outputs.version }}_build-image-logs
+          name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}_build-image-logs
           path: collected-logs/**/*.log
           if-no-files-found: ignore
 
@@ -760,7 +760,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-${{ needs.build-prep.outputs.version }}_ab-partition-image-logs  
+          name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}_ab-partition-image-logs  
           path: collected-logs/**/*.log
           if-no-files-found: ignore
   release:
@@ -844,7 +844,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-${{ needs.build-prep.outputs.version }}_release-logs 
+          name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}_release-logs 
           path: collected-logs/**/*.log
           if-no-files-found: ignore
 
@@ -887,7 +887,7 @@ jobs:
       - name: Upload combined logs
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-${{ needs.build-prep.outputs.version }}-github-logs
+          name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}-github-logs
           path: "combined-logs/**/*.log"
           if-no-files-found: ignore
   

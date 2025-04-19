@@ -173,7 +173,7 @@ done
 
 export PI_GEN=${PI_GEN:-pi-gen-bookworm}
 export PI_GEN_REPO=${PI_GEN_REPO:-https://github.com/WLAN-Pi/pi-gen-bookworm/}
-export PI_GEN_RELEASE=${PI_GEN_RELEASE:-WLAN Pi reference}
+export PI_GEN_RELEASE=${PI_GEN_RELEASE:-WLAN Pi}
 
 export ARCH=arm64
 export RELEASE=${RELEASE:-bookworm} # Don't forget to update stage0/prerun.sh
@@ -181,7 +181,7 @@ export IMG_NAME="${IMG_NAME:-wlanpi-os-$RELEASE-$ARCH}"
 
 export WLANPI_VERSION=${WLANPI_VERSION:-$(date '+%Y.%m.%d')}
 export WLANPI_CODENAME=${WLANPI_CODENAME:-"theanine"}
-export WLANPI_FULL_VERSION=${WLANPI_FULL_VERSION:-"$WLANPI_VERSION-$WLANPI_CODENAME"}
+export WLANPI_FULL_VERSION=${WLANPI_FULL_VERSION}
 export IMG_FILENAME="${IMG_NAME}-${WLANPI_FULL_VERSION}"
 export WLANPI_HOME_URL="https://wlanpi.com"
 export WLANPI_SUPPORT_URL="https://github.com/orgs/WLAN-Pi/discussions"
