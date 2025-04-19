@@ -448,12 +448,21 @@ jobs:
                 cp "$INFO" "processed/$NEW_INFO"
               fi
 
+              SBOM="${IMG%.img.gz}.sbom"
+              if [ -f "$SBOM" ]; then
+                NEW_SBOM="wlanpi-os-$TYPE-$VERSION.sbom"
+                cp "$SBOM" "processed/$NEW_SBOM"
+              fi
+
               pushd processed
               sha256sum "$NEW" > "$NEW.sha256"
               popd
             fi
           done
 
+          echo "Deploy:"
+          ls -la deploy/
+          echo ""
           echo "Processed:"
           ls -la processed/
 
@@ -545,13 +554,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wlanpi-os-${{ env.version }}-info
-          path: processed/*.info
-
-      - name: Upload info (included package versions)
-        uses: actions/upload-artifact@v4
-        with:
-          name: wlanpi-os-${{ env.version }}-sbom
-          path: processed/*.sbom
+          path: |
+            processed/wlanpi-os-*.info
+            deploy/*.info
+            processed/wlanpi-os-*.sbom
+            deploy/*.sbom
 
       # - name: Everything
       #   uses: actions/upload-artifact@v4
