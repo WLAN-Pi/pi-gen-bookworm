@@ -97,11 +97,32 @@ copy_overlay /etc/wpa_supplicant/wpa_supplicant.conf -o root -g root -m 600
 # Copy config file: avahi-daemon
 copy_overlay /etc/avahi/avahi-daemon.conf -o root -g root -m 644
 
-# Copy .vimrc file
+# Copy config files
 install -m 644 files/.vimrc "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.vimrc"
 install -m 644 files/.tmux.conf "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.tmux.conf"
+install -m 644 files/.vimrc "${ROOTFS_DIR}/root/.vimrc"
+install -m 644 files/.tmux.conf "${ROOTFS_DIR}/root/.tmux.conf"
 
+# Stage tmux and vim config for both user and root for consistent experience
 on_chroot << EOF
-chown ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.vimrc
-chown ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.tmux.conf
+# Create necessary directories for both users
+mkdir -p /home/${FIRST_USER_NAME}/.vim/undodir
+mkdir -p /root/.vim/undodir
+
+# Create empty viminfo files
+touch /home/${FIRST_USER_NAME}/.vim/viminfo
+touch /root/.vim/viminfo
+
+# Set ownership for regular user
+chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.vimrc
+chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.tmux.conf
+chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.vim
+
+# Set permissions for user
+chmod 600 /home/${FIRST_USER_NAME}/.vim/viminfo
+chmod 700 /home/${FIRST_USER_NAME}/.vim/undodir
+
+# Set permissions for root
+chmod 600 /root/.vim/viminfo
+chmod 700 /root/.vim/undodir
 EOF

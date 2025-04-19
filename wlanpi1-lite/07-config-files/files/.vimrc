@@ -19,6 +19,10 @@ set visualbell                     " Flash screen instead of beeping
 " Status line
 highlight StatusLine ctermbg=234 ctermfg=250 guibg=#1c1c1c guifg=#bcbcbc
 highlight StatusLineNC ctermbg=235 ctermfg=242 guibg=#262626 guifg=#6c6c6c
+set statusline=
+set statusline+=%{$USER=='root'?'[ROOT]\ ':''}
+set statusline+=%f                " filename
+set statusline+=%m                " modified flag
 
 " Cursor visibility
 set cursorline                     " Highlight current line
