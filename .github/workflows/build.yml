@@ -215,7 +215,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-${{ steps.identify-rc.outputs.full_version }}-promote-release-logs
+          name: wlanpi-os-${{ steps.identify-rc.outputs.full_version }}_promote-release-logs
           path: "**/*.log"
           if-no-files-found: ignore
   build-prep:
@@ -344,7 +344,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-${{ needs.build-prep.outputs.version }}-build-preps-logs 
+          name: wlanpi-os-${{ needs.build-prep.outputs.version }}_build-preps-logs 
           path: collected-logs/**/*.log
           if-no-files-found: ignore
 
@@ -556,13 +556,13 @@ jobs:
       - name: Upload digest (checksums)
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-${{ env.version }}-digest
+          name: wlanpi-os-${{ env.version }}_digest
           path: processed/wlanpi-os-*.img.gz.sha256
 
       - name: Upload info (included package versions)
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-${{ env.version }}-info
+          name: wlanpi-os-${{ env.version }}_info
           path: |
             processed/wlanpi-os-*.info
             deploy/*.info
@@ -588,7 +588,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-${{ needs.build-prep.outputs.version }}-build-image-logs
+          name: wlanpi-os-${{ needs.build-prep.outputs.version }}_build-image-logs
           path: collected-logs/**/*.log
           if-no-files-found: ignore
 
@@ -760,7 +760,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-${{ needs.build-prep.outputs.version }}-ab-partition-image-logs  
+          name: wlanpi-os-${{ needs.build-prep.outputs.version }}_ab-partition-image-logs  
           path: collected-logs/**/*.log
           if-no-files-found: ignore
   release:
@@ -844,7 +844,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-${{ needs.build-prep.outputs.version }}-release-logs 
+          name: wlanpi-os-${{ needs.build-prep.outputs.version }}_release-logs 
           path: collected-logs/**/*.log
           if-no-files-found: ignore
 

@@ -119,6 +119,19 @@ nnoremap <leader>bd :bdelete<CR>   " Delete buffer
 set foldmethod=indent              " Fold based on indentation
 set foldnestmax=10                 " Maximum fold nesting level
 set nofoldenable                   " Don't fold by default
+if !isdirectory($HOME."/.vim")
+    call mkdir($HOME."/.vim", "p", 0700)
+endif
+
+if !isdirectory($HOME."/.vim/undodir")
+    call mkdir($HOME."/.vim/undodir", "p", 0700)
+endif
+
+" Create viminfo file if it doesn't exist
+if !filereadable($HOME."/.vim/viminfo")
+    silent !touch ~/.vim/viminfo
+    silent !chmod 600 ~/.vim/viminfo
+endif
 
 " Enable persistent registers between vim sessions
 set viminfo='100,<1000,s10,h,\"1000,n~/.vim/viminfo
@@ -126,8 +139,3 @@ set viminfo='100,<1000,s10,h,\"1000,n~/.vim/viminfo
 " Explicitly read viminfo on startup and write on exit
 autocmd VimEnter * rviminfo
 autocmd VimLeave * wviminfo
-
-" Create directory and file if they don't exist
-if !isdirectory($HOME."/.vim")
-    call mkdir($HOME."/.vim", "p", 0700)
-endif
