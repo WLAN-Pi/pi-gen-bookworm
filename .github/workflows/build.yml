@@ -400,8 +400,8 @@ jobs:
           fi
           sudo ./build.sh 2>&1 | tee build_output.log
           exit ${PIPESTATUS[0]} 
+
       - name: Check build errors
-      
         run: |
           if grep -q "Build failed" build_output.log; then
             echo "::error::Build process failed, see logs for details"
