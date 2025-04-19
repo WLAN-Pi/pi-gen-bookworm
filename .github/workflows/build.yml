@@ -382,8 +382,9 @@ jobs:
             jq \
             binfmt-support \
             systemd-container \
-            syft \
             arch-test
+          
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
 
       - name: Sudo build images
         id: build_images
