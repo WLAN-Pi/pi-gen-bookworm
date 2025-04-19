@@ -407,8 +407,6 @@ jobs:
           find deploy -type f -exec ls -lh {} \; | sort
           echo "========================================"
 
-          exit 1
-
           if [ ! -f deploy/*.img.gz ]; then
             echo "::error::No images (img.gz) were detected during build"
             exit 1
@@ -449,9 +447,9 @@ jobs:
                 cp "$INFO" "processed/$NEW_INFO"
               fi
 
-              SBOM="${IMG%.img.gz}.sbom"
+              SBOM="${IMG%.img.gz}.sbom.xz"
               if [ -f "$SBOM" ]; then
-                NEW_SBOM="wlanpi-os-$TYPE-$VERSION.sbom"
+                NEW_SBOM="wlanpi-os-$TYPE-$VERSION.sbom.xz"
                 cp "$SBOM" "processed/$NEW_SBOM"
               fi
 
@@ -558,8 +556,8 @@ jobs:
           path: |
             processed/wlanpi-os-*.info
             deploy/*.info
-            processed/wlanpi-os-*.sbom
-            deploy/*.sbom
+            processed/wlanpi-os-*.sbom.xz
+            deploy/*.sbom.xz
 
       # - name: Everything
       #   uses: actions/upload-artifact@v4
