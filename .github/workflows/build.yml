@@ -811,6 +811,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Verify git tag creation
+        run: |
+          echo "Verifying tag creation for ${{ env.git_tag }}"
+          if git fetch --tags origin && git tag -l | grep -q "${{ env.git_tag }}"; then
+            echo "✅ Tag successfully created and verified: ${{ env.git_tag }}"
+          else
+            echo "⚠️ Warning: Tag verification couldn't find tag: ${{ env.git_tag }}"
+            echo "You may need to manually verify tag creation after the workflow completes."
+          fi
+
       - name: Upload job logs
         if: always()
         run: |
