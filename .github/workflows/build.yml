@@ -1,4 +1,4 @@
-name: Generate WLAN PI OS bookworm based images
+name: WLAN Pi OS Build & Release Pipeline
 on:
   workflow_dispatch:
     inputs:
