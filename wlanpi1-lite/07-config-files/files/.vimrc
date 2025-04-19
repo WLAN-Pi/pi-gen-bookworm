@@ -17,6 +17,10 @@ set showcmd                        " Show command in bottom bar
 set noerrorbells                   " No sounds on errors
 set visualbell                     " Flash screen instead of beeping
 
+" Status line
+highlight StatusLine ctermbg=234 ctermfg=250 guibg=#1c1c1c guifg=#bcbcbc
+highlight StatusLineNC ctermbg=235 ctermfg=242 guibg=#262626 guifg=#6c6c6c
+
 " Cursor visibility
 set cursorline                     " Highlight current line
 " set nocursorline                   " Do not highlight current line
@@ -63,7 +67,49 @@ nnoremap <leader>w :w<CR>          " Save with leader+w
 nnoremap <leader>q :q<CR>          " Quit with leader+q
 nnoremap <leader>h :nohlsearch<CR> " Clear search highlighting
 
-" Create directory for undo files if doesn't exist
-if !isdirectory($HOME."/.vim/undodir")
-    call mkdir($HOME."/.vim/undodir", "p", 0700)
+" Window splits
+nnoremap <leader>v :vsplit<CR>     " v for vertical split
+nnoremap <leader>s :split<CR>      " s for split (horizontal)
+
+" More natural split opening
+set splitbelow                     " Open new horizontal splits below
+set splitright                     " Open new vertical splits to the right
+
+" Window navigation (using window prefix)
+nnoremap <leader>wh <C-w>h         " Move to left window
+nnoremap <leader>wj <C-w>j         " Move to window below
+nnoremap <leader>wk <C-w>k         " Move to window above
+nnoremap <leader>wl <C-w>l         " Move to right window
+
+" Window resizing
+nnoremap <leader>= <C-w>=          " Equal size windows
+nnoremap <leader>+ <C-w>5+         " Increase height by 5
+nnoremap <leader>- <C-w>5-         " Decrease height by 5
+nnoremap <leader>> <C-w>5>         " Increase width by 5
+nnoremap <leader>< <C-w>5<         " Decrease width by 5
+
+" Window management
+nnoremap <leader>q <C-w>c          " Close current window
+nnoremap <leader>o <C-w>o          " Close all other windows
+
+" Buffer navigation
+nnoremap <leader>bn :bnext<CR>     " Next buffer
+nnoremap <leader>bp :bprev<CR>     " Previous buffer
+nnoremap <leader>bd :bdelete<CR>   " Delete buffer
+
+" Folding
+set foldmethod=indent              " Fold based on indentation
+set foldnestmax=10                 " Maximum fold nesting level
+set nofoldenable                   " Don't fold by default
+
+" Enable persistent registers between vim sessions
+set viminfo='100,<1000,s10,h,\"1000,n~/.vim/viminfo
+
+" Explicitly read viminfo on startup and write on exit
+autocmd VimEnter * rviminfo
+autocmd VimLeave * wviminfo
+
+" Create directory and file if they don't exist
+if !isdirectory($HOME."/.vim")
+    call mkdir($HOME."/.vim", "p", 0700)
 endif
