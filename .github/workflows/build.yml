@@ -382,8 +382,6 @@ jobs:
             binfmt-support \
             systemd-container \
             arch-test
-      - name: Grant execution permissions
-        run: chmod +x build.sh
 
       - name: Sudo build images
         id: build_images
