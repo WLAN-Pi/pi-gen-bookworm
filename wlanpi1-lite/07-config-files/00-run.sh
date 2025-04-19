@@ -72,7 +72,7 @@ sed -i 's/^VERSION_CODENAME=.*/VERSION_CODENAME=${WLANPI_CODENAME}/' /etc/os-rel
 echo "Updated /etc/os-release content:"
 cat /etc/os-release
 
-echo "=== /etc/os-release update uomplete ==="
+echo "=== /etc/os-release update complete ==="
 EOF
 
 chmod +x "${ROOTFS_DIR}/tmp/update-os-release.sh"
