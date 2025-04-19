@@ -1,28 +1,248 @@
-name: Build wlan(pi-gen) bookworm image
+name: WLAN Pi OS Build & Release Pipeline
 on:
   workflow_dispatch:
     inputs:
+      promote_mode:
+        description: '🔄 PROMOTE: Switch to promotion mode (ignores build options)'
+        required: false
+        type: boolean
+        default: false
+
+      rc_tag:
+        description: '🔄 PROMOTE: a specific RC: requires full git tag (format is YYYY.MM.DD_rc.N e.g., 2025.04.18_rc.1)'
+        required: false
+        type: string
+        
+      base_date:
+        description: '🔄/🔨 PROMOTE/BUILD: override todays date (format: YYYY.MM.DD, e.g., 2025.04.18) to continue incremental versioning'
+        required: false
+        type: string
+
       repos:
-        descriptions: Repos to include
+        description: '🔨 BUILD: which package cloud repos to include (default includes both dev/main)'
         required: true
         type: choice
         options:
           - both
           - main
         default: both
+
+      codename:
+        description: '🔨 BUILD: release codename ([development codename])'
+        required: true
+        type: string
+        default: "theanine"
+
+      build_type:
+        description: '🔨 BUILD: type of release to create (dev=development build, rc=release candidate, final=stable release, point=patch release [requires point_base])'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - rc
+          - final
+          - point
+
+      skip_full_image:
+        description: '🔨 BUILD: lite image only'
+        required: false
+        type: boolean
+        default: false
+      
+      ab_partition:
+        description: '🔨 BUILD: post process lite image for A/B partitioning'
+        required: false
+        type: boolean
+        default: true
+
+      ab_partition_suffix:
+        description: '🔨 BUILD: filename suffix for A/B partitioned image'
+        required: false
+        type: string
+        default: 'AB'
+
+      point_base:
+        description: '🔨 BUILD: for point releases (2025.04.18.1): specify base to create patch release for (e.g., 2025.04.18)'
+        required: false
+        type: string
+permissions:
+  contents: write
 jobs:
-  build-prep:
+  promote-release:
+    if: ${{ github.event.inputs.promote_mode == 'true' }}
     runs-on: ubuntu-24.04-arm
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Check if inputs choice exists
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
+          
+      - name: Debug GitHub Releases
+        run: |
+          echo "Listing all GitHub releases:"
+          gh release list
+
+          echo "Checking for specific RC tag: ${{ github.event.inputs.rc_tag }}"
+          RC_TAG="${{ github.event.inputs.rc_tag }}"
+          if [ -z "$RC_TAG" ]; then
+            BASE_VERSION=$(date '+%Y.%m.%d')
+            echo "Using today's date as base: $BASE_VERSION"
+            RC_TAG=$(git tag -l "${BASE_VERSION}_rc.*" | sort -V | tail -n1)
+            echo "Found RC tag: $RC_TAG"
+          fi
+
+          echo "Attempting to view release for tag $RC_TAG"
+          gh release view "$RC_TAG" --json name,tagName,url,createdAt || echo "No release found for tag $RC_TAG"
+
+          echo "Listing all Git tags for comparison:"
+          git tag -l | sort -V | tail -n10
+          
+      - name: Identify RC to promote
+        id: identify-rc
+        run: |
+          CODENAME="${{ github.event.inputs.codename }}"
+          if [ -n "${{ github.event.inputs.rc_tag }}" ]; then
+            LATEST_RC="${{ github.event.inputs.rc_tag }}"
+            echo "Using explicitly provided RC tag: $LATEST_RC"
+          else
+            if [ -n "${{ github.event.inputs.base_date }}" ]; then
+              BASE_VERSION="${{ github.event.inputs.base_date }}"
+              echo "Looking for RC with base date: $BASE_VERSION"
+            else
+              BASE_VERSION=$(date '+%Y.%m.%d')
+              echo "Looking for RC with today's date: $BASE_VERSION"
+            fi
+            LATEST_RC=$(git tag -l "${BASE_VERSION}_rc.*" | sort -V | tail -n1)
+            if [ -z "$LATEST_RC" ]; then
+              echo "Error: No RC found for date $BASE_VERSION"
+              exit 1
+            fi
+          fi
+
+          RC_VERSION=$(echo "$LATEST_RC" | grep -o '^[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}')
+          FINAL_VERSION="$RC_VERSION"
+
+          RC_RELEASE=$(gh release view "$LATEST_RC" --json name 2>/dev/null || echo "")
+          if [ -z "$RC_RELEASE" ]; then
+            echo "Error: No release found for tag $LATEST_RC"
+            exit 1
+          fi
+          
+          mkdir -p download
+          gh release download "$LATEST_RC" --pattern "*.sha256" --dir download --skip-existing || { 
+            echo "Failed to download sample file from release"
+            exit 1
+          }
+          
+          SAMPLE_FILE=$(ls download/*.sha256 2>/dev/null | head -n 1)
+          if [ -n "$SAMPLE_FILE" ]; then
+            EXTRACTED_CODENAME=$(echo "$(basename "$SAMPLE_FILE")" | grep -oP '~rc\.[0-9]+-\K[^.]+' || echo "")
+            if [ -n "$EXTRACTED_CODENAME" ] && [ "$EXTRACTED_CODENAME" != "$CODENAME" ]; then
+              echo "Warning: Extracted codename '$EXTRACTED_CODENAME' differs from input codename '$CODENAME'"
+              echo "Using extracted codename for consistency"
+              CODENAME="$EXTRACTED_CODENAME"
+            fi
+          fi
+          FULL_VERSION="$FINAL_VERSION-$CODENAME"
+          echo "rc_tag=$LATEST_RC" >> $GITHUB_OUTPUT
+          echo "final_version=$FINAL_VERSION" >> $GITHUB_OUTPUT
+          echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
+          echo "codename=$CODENAME" >> $GITHUB_OUTPUT
+
+      - name: Download RC assets
+        run: |
+          mkdir -p download promoted
+          RC_TAG="${{ steps.identify-rc.outputs.rc_tag }}"
+          gh release download "$RC_TAG" --dir download --clobber
+          if [ -z "$(ls -A download)" ]; then
+            echo "No files downloaded from release $RC_TAG"
+            exit 1
+          fi
+
+      - name: Rename assets for promotion
+        run: |
+          RC_TAG="${{ steps.identify-rc.outputs.rc_tag }}"
+          FINAL_VERSION="${{ steps.identify-rc.outputs.final_version }}"
+          FULL_VERSION="${{ steps.identify-rc.outputs.full_version }}"
+          
+          for FILE in download/*; do
+            if [ -f "$FILE" ]; then
+              EXTENSION="${FILE##*.}"
+              BASE_NAME=$(basename "$FILE" .$EXTENSION)
+              RC_PART=$(echo "$BASE_NAME" | grep -o '[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}[_~]rc\.[0-9]*' || echo "")
+              if [ -n "$RC_PART" ]; then
+                NEW_BASE_NAME="${BASE_NAME/$RC_PART/$FINAL_VERSION}"
+                NEW_NAME="$NEW_BASE_NAME.$EXTENSION"
+                cp "$FILE" "promoted/$NEW_NAME"
+                echo "Renamed: $FILE -> promoted/$NEW_NAME"
+              else
+                cp "$FILE" "promoted/$(basename "$FILE")"
+                echo "Copied without renaming: $FILE"
+              fi
+            fi
+          done
+          
+          pushd promoted
+          for FILE in *; do
+            if [[ ! "$FILE" == *".sha256" ]]; then
+              sha256sum "$FILE" > "$FILE.sha256"
+            fi
+          done
+          popd
+
+      - name: Debug promotion info
+        run: |
+          echo "RC Tag: ${{ steps.identify-rc.outputs.rc_tag }}"
+          echo "Final Version: ${{ steps.identify-rc.outputs.final_version }}"
+          echo "Full Version: ${{ steps.identify-rc.outputs.full_version }}"
+          echo "Downloaded files:"
+          ls -la download/
+
+      - name: Create promoted release if we're running from the default branch
+        if: ${{ github.event.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+        uses: "joshschmelzle/action-automatic-releases@1c60c2dcfeb5382b81099310bdb4a376dc7753a0"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: ${{ steps.identify-rc.outputs.full_version }}
+          prerelease: false
+          files: |
+            promoted/*
+
+      - name: Upload job logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-${{ steps.identify-rc.outputs.full_version }}_promote-release-logs
+          path: "**/*.log"
+          if-no-files-found: ignore
+  build-prep:
+    if: ${{ github.event.inputs.promote_mode != 'true' }}
+    runs-on: ubuntu-24.04-arm
+    outputs:
+      include_packagecloud_dev: ${{ steps.repos.outputs.INCLUDE_PACKAGECLOUD_DEV }}
+      version: ${{ steps.version.outputs.version }}
+      full_version: ${{ steps.version.outputs.full_version }}
+      codename: ${{ steps.version.outputs.codename }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
+
+      - name: Check if pkg repos input choice was made
         run: |
           CHOICE=${{ github.event.inputs.repos }}
           if [ -z "$CHOICE" ]; then
-            echo "Error: inputs choice not found"
+            echo "Error: repo choice not detected"
             exit 1
           fi
           echo "REPOS=$CHOICE" >> $GITHUB_ENV
-      - name: Set repos choice variable
+
+      - name: Set pkg repos choice variable
+        id: repos
         run: |
           echo "Repos choice: $REPOS"
           if [ "$REPOS" = "both" ]; then
@@ -30,14 +250,114 @@ jobs:
           else
             echo 'INCLUDE_PACKAGECLOUD_DEV=0' >> $GITHUB_OUTPUT
           fi
+
+      - name: Set version variables
+        id: version
+        run: |
+          CODENAME="${{ github.event.inputs.codename }}"
+          echo "codename=$CODENAME" >> $GITHUB_OUTPUT
+          if [ -n "${{ github.event.inputs.base_date }}" ]; then
+            BASE_VERSION="${{ github.event.inputs.base_date }}"
+            echo "Using specified base date: $BASE_VERSION"
+          else
+            BASE_VERSION=$(date '+%Y.%m.%d')
+            echo "Using today's date: $BASE_VERSION"
+          fi
+          BUILD_TYPE="${{ github.event.inputs.build_type }}"
+          if [ "$BUILD_TYPE" = "point" ]; then
+            POINT_BASE="${{ github.event.inputs.point_base }}"
+            if [ -z "$POINT_BASE" ]; then
+              echo "Error: point_base is required for point releases"
+              exit 1
+            fi
+            LATEST_POINT=$(git tag -l "${POINT_BASE}.*" | sort -V | tail -n1)
+            if [ -z "$LATEST_POINT" ]; then
+              POINT_NUM=1
+            else
+              CURR_POINT=$(echo "$LATEST_POINT" | awk -F. '{print $NF}')
+              POINT_NUM=$((CURR_POINT + 1))
+            fi
+            VERSION="${POINT_BASE}.${POINT_NUM}"
+          elif [ "$BUILD_TYPE" = "final" ]; then
+            VERSION="$BASE_VERSION"
+          else
+            LATEST_SEQ_UNDERSCORE=$(git tag -l "${BASE_VERSION}_${BUILD_TYPE}.*" | sort -V | tail -n1)
+            LATEST_SEQ_TILDE=$(git tag -l "${BASE_VERSION}~${BUILD_TYPE}.*" | sort -V | tail -n1)
+            
+            echo "Looking for existing tags with patterns:"
+            echo "${BASE_VERSION}_${BUILD_TYPE}.*"
+            echo "${BASE_VERSION}~${BUILD_TYPE}.*"
+            
+            if [ -n "$LATEST_SEQ_UNDERSCORE" ]; then
+              echo "Found tag with underscore: $LATEST_SEQ_UNDERSCORE"
+              LATEST_SEQ="$LATEST_SEQ_UNDERSCORE"
+            elif [ -n "$LATEST_SEQ_TILDE" ]; then
+              echo "Found tag with tilde: $LATEST_SEQ_TILDE"
+              LATEST_SEQ="$LATEST_SEQ_TILDE"
+            else
+              echo "No existing tags found"
+              LATEST_SEQ=""
+            fi
+            
+            if [ -z "$LATEST_SEQ" ]; then
+              SEQ_NUM=1
+              echo "Starting new sequence with number 1"
+            else
+              if [[ "$LATEST_SEQ" == *"_$BUILD_TYPE."* ]]; then
+                # For tags with underscore format: 2025.04.18_dev.1-theanine
+                CURR_SEQ=$(echo "$LATEST_SEQ" | grep -o "_$BUILD_TYPE\.[0-9]*" | cut -d. -f2)
+              else
+                # For tags with tilde format: 2025.04.18~dev.1-theanine
+                CURR_SEQ=$(echo "$LATEST_SEQ" | grep -o "~$BUILD_TYPE\.[0-9]*" | cut -d. -f2)
+              fi
+              
+              if [ -z "$CURR_SEQ" ]; then
+                echo "Failed to extract sequence number from $LATEST_SEQ, defaulting to 1"
+                SEQ_NUM=1
+              else
+                echo "Current sequence number: $CURR_SEQ"
+                SEQ_NUM=$((CURR_SEQ + 1))
+                echo "Next sequence number: $SEQ_NUM"
+              fi
+            fi
+            
+            # Always use tilde in the VERSION but the tag will convert to underscore
+            VERSION="${BASE_VERSION}~${BUILD_TYPE}.${SEQ_NUM}"
+          fi
+          FULL_VERSION="${VERSION}-${CODENAME}"
+          echo "Version: $BASE_VERSION"
+          echo "Full version with codename: $FULL_VERSION"
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Upload job logs
+        if: always()
+        run: |
+          echo "Current working directory: $(pwd)"
+          mkdir -p collected-logs
+          find . -name "*.log" -type f -readable -exec cp --parents {} ./collected-logs/ \; 2>/dev/null || true
+          echo "Found these accessible log files:"
+          find ./collected-logs -type f | sort || echo "No logs found or could not list logs"
+          
+      - name: Upload collected job logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}_build-preps-logs 
+          path: collected-logs/**/*.log
+          if-no-files-found: ignore
+
   build-image:
+    if: ${{ github.event.inputs.promote_mode != 'true'  }}
     runs-on: ubuntu-24.04-arm
     needs:
       - build-prep
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Set up Dependencies
+
+      - name: Set up build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -64,30 +384,536 @@ jobs:
             binfmt-support \
             systemd-container \
             arch-test
-      - name: Grant Execution Permissions
-        run: chmod +x build.sh
-      - name: Run Build Script as Root
+          
+          # requires for sbom generation
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+      
+      - name: Print build variables
+        run: |
+          echo "GITHUB_REF_NAME: ${{ github.ref_name }}"
+          echo "WLANPI_VERSION: ${{ needs.build-prep.outputs.version }}"
+          echo "WLANPI_CODENAME: ${{ needs.build-prep.outputs.codename }}"
+          echo "WLANPI_FULL_VERSION: ${{ needs.build-prep.outputs.full_version }}"
+          echo "SKIP_FULL_IMAGE: ${{ github.event.inputs.skip_full_image }}"
+
+      - name: Sudo build images
+        id: build_images
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
+          WLANPI_VERSION: ${{ needs.build-prep.outputs.version }}
+          WLANPI_CODENAME: ${{ needs.build-prep.outputs.codename }}
+          WLANPI_FULL_VERSION: ${{ needs.build-prep.outputs.full_version }}
+          SKIP_FULL_IMAGE: ${{ github.event.inputs.skip_full_image }}
         run: |
-          sudo ./build.sh
-      - name: Get current date
-        id: date
-        run: echo "date=$(date -u +'%Y%m%dt%H%M%S')" >> $GITHUB_ENV
-      - name: Archive and Upload Build Artifacts
+          if [ "$SKIP_FULL_IMAGE" = "true" ]; then
+            echo "Skipping full image build as requested"
+            mkdir -p wlanpi2-full
+            touch wlanpi2-full/SKIP
+          fi
+          sudo -E ./build.sh 2>&1 | tee build_output.log
+
+          echo "========== BUILD OUTPUT FILES =========="
+          echo "Contents of deploy directory:"
+          find deploy -type f -exec ls -lh {} \; | sort
+          echo "========================================"
+
+          if [ ! -f deploy/*.img.gz ]; then
+            echo "::error::No images (img.gz) were detected during build"
+            exit 1
+          fi
+        continue-on-error: true
+
+      - name: Verify build images outcome
+        run: |
+          if [ "${{ steps.build_images.outcome }}" != "success" ]; then
+            echo "::error::Build process failed, skipping packaging steps"
+            grep -A 5 -B 15 "Build failed" build_output.log
+            exit 1
+          fi
+
+      - name: Calculate version and checksums
+        id: vercheck
+        run: |
+          VERSION="${{ needs.build-prep.outputs.full_version }}"
+          echo "version=$VERSION" >> $GITHUB_ENV
+          mkdir -p processed
+          for IMG in deploy/*.img.gz; do
+            if [ -f "$IMG" ]; then
+              BASE=$(basename "$IMG")
+              if [[ "$BASE" == *"-lite.img.gz" ]]; then
+                TYPE="lite"
+              elif [[ "$BASE" == *"-full.img.gz" ]]; then
+                TYPE="full"
+              else
+                continue
+              fi
+
+              NEW="wlanpi-os-$TYPE-$VERSION.img.gz"
+              cp "$IMG" "processed/$NEW"
+
+              INFO="${IMG%.img.gz}.info"
+              if [ -f "$INFO" ]; then
+                NEW_INFO="wlanpi-os-$TYPE-$VERSION.info"
+                cp "$INFO" "processed/$NEW_INFO"
+              fi
+
+              SBOM="${IMG%.img.gz}.sbom.xz"
+              if [ -f "$SBOM" ]; then
+                NEW_SBOM="wlanpi-os-$TYPE-$VERSION.sbom.xz"
+                cp "$SBOM" "processed/$NEW_SBOM"
+              fi
+
+              pushd processed
+              sha256sum "$NEW" > "$NEW.sha256"
+              popd
+            fi
+          done
+
+          echo "Deploy:"
+          ls -la deploy/
+          echo ""
+          echo "Processed:"
+          ls -la processed/
+
+      - name: Create zips
+        run: |
+          echo "Starting script in directory: $(pwd)"
+          mkdir -p zips
+          echo "Created zips directory"
+
+          LITE=$(find processed -name "wlanpi-os-lite-*.img.gz" -print -quit)
+          if [ -n "$LITE" ]; then
+            echo "lite image file found: $LITE"
+            LITE_BASE=$(basename "$LITE")
+            LITE_ZIP="${LITE_BASE%.img.gz}.zip"
+            echo "Creating zip file: $LITE_ZIP"
+
+            pushd processed
+            zip "../zips/$LITE_ZIP" "$(basename "$LITE")"
+            echo "Zip creation exit code: $?"
+            popd
+
+            pushd zips
+            echo "Creating SHA256 sum for lite image"
+            sha256sum "$LITE_ZIP" > "$LITE_ZIP.sha256"
+            popd
+          fi
+
+          FULL=$(find processed -name "wlanpi-os-full-*.img.gz" -print -quit)
+          if [ -n "$FULL" ]; then
+            echo "full image file found: $LITE"
+            FULL_BASE=$(basename "$FULL")
+            FULL_ZIP_NAME="${FULL_BASE%.img.gz}.zip"
+            
+            pushd processed
+            zip "../zips/$FULL_ZIP_NAME" "$(basename "$FULL")"
+            echo "Zip creation exit code: $?"
+            popd
+            
+            pushd zips
+            sha256sum "$FULL_ZIP_NAME" > "$FULL_ZIP_NAME.sha256"
+            popd
+          fi
+
+          echo "Checking deploy directory permissions before creating"
+          ls -la . | grep deploy || echo "No deploy directory found yet"
+
+          mkdir -p deploy
+          echo "Created deploy directory, checking permissions:"
+          ls -la . | grep deploy
+          echo "User and groups:"
+          id
+
+          echo "Files in zips directory:"
+          ls -la zips/
+
+          echo "Checking deploy directory contents:"
+          ls -la deploy/ || echo "Cannot list deploy directory"
+
+          sudo cp -v zips/*.zip deploy/
+          sudo cp -v zips/*.sha256 deploy/
+          
+          echo "Checking deploy directory contents:"
+          ls -la deploy/ || echo "Cannot list deploy directory"
+
+          echo "Created these zip files for pre-release:"
+          ls -la zips/
+
+      - name: Upload full image
+        if: ${{ github.event.inputs.skip_full_image != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-full-${{ env.version }}
+          path: processed/wlanpi-os-full-*.img.gz
+          if-no-files-found: ignore
+
+      - name: Upload lite image
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-lite-${{ env.version }}
+          path: processed/wlanpi-os-lite-*.img.gz
+
+      - name: Upload digest (checksums)
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-${{ env.version }}_digest
+          path: processed/wlanpi-os-*.img.gz.sha256
+
+      - name: Upload info (included package versions)
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-${{ env.version }}_info
+          path: |
+            processed/wlanpi-os-*.info
+            deploy/*.info
+            processed/wlanpi-os-*.sbom.xz
+            deploy/*.sbom.xz
+
+      # - name: Everything
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: wlanpi-os-all-build-artifacts-${{ env.version }}
+      #     path: deploy/
+
+      - name: Upload job logs
+        if: always()
+        run: |
+          echo "Current working directory: $(pwd)"
+          mkdir -p collected-logs
+          find . -name "*.log" -type f -readable -exec cp --parents {} ./collected-logs/ \; 2>/dev/null || true
+          echo "Found these accessible log files:"
+          find ./collected-logs -type f | sort || echo "No logs found or could not list logs"
+          
+      - name: Upload collected job logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os~gha${{ env.date }}
-          path: deploy/
+          name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}_build-image-logs
+          path: collected-logs/**/*.log
+          if-no-files-found: ignore
+
+  ab-partition-image:
+    needs: [build-image, build-prep]
+    runs-on: ubuntu-24.04-arm
+    if: ${{ github.event.inputs.promote_mode != 'true' && github.event.inputs.ab_partition == 'true' }}
+    steps:
+      - name: Checkout repository (for scripts)
+        uses: actions/checkout@v4
+        
+      - name: Install required dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y parted mount util-linux dosfstools rsync
+
+      - name: Download lite image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wlanpi-os-lite-${{ needs.build-prep.outputs.full_version }}
+          path: original-images
+
+      - name: Create A/B partitioned lite image
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Directory listing:"
+          ls -la
+          echo "Looking for original-images:"
+          find . -name "original-images" -type d || echo "No original-images directory found"
+          echo "Contents of original-images (if exists):"
+          ls -la original-images || echo "Cannot access original-images"
+
+          VERSION="${{ needs.build-prep.outputs.full_version }}"
+          AB_SUFFIX="${{ github.event.inputs.ab_partition_suffix }}"
+          
+          WORK_DIR="${GITHUB_WORKSPACE}"
+          echo "Working directory: ${WORK_DIR}"
+
+          mkdir -p ab-partitioned
+          
+          LITE_IMG=$(find "./original-images" -name "wlanpi-os-lite-*.img.gz" -print -quit)
+          if [ -z "$LITE_IMG" ]; then
+            echo "Error: Could not find lite image"
+            echo "Directory contents:"
+            ls -la "original-images" || echo "Cannot list directory"
+            exit 1
+          fi
+          
+          LITE_BASE=$(basename "$LITE_IMG")
+          LITE_NOEXT="${LITE_BASE%.img.gz}"
+          OUTPUT_BASE="${LITE_NOEXT}-${AB_SUFFIX}.img"
+          
+          echo "Creating A/B partitioned image from $LITE_BASE"
+          echo "Output will be: $OUTPUT_BASE"
+          
+          # Decompress the image (this will take time and disk space)
+          echo "Decompressing image..."
+          gunzip -c "$LITE_IMG" > "original.img"
+        
+          ORIG_SIZE=$(du -h original.img | cut -f1)
+          echo "Decompressed image size: $ORIG_SIZE"
+
+          # Run the A/B partition script
+          sudo ./scripts/ab_partition "original.img" "$OUTPUT_BASE"
+          
+          if [ ! -f "$OUTPUT_BASE" ]; then
+            echo "Error: A/B partition script failed to create output image"
+            exit 1
+          fi
+
+          AB_SIZE=$(du -h "$OUTPUT_BASE" | cut -f1)
+          echo "A/B partitioned image size: $AB_SIZE"
+          
+          # Compress the A/B image
+          gzip -9 "$OUTPUT_BASE"
+          
+          mv "$OUTPUT_BASE.gz" "ab-partitioned/"
+
+          # Calculate checksums
+          pushd ab-partitioned
+          sha256sum "$OUTPUT_BASE.gz" > "$OUTPUT_BASE.gz.sha256"
+          popd
+          
+          echo "output_base=$OUTPUT_BASE" >> $GITHUB_ENV
+          
+          # Create info file if original has one
+          INFO_FILE="${LITE_IMG%.img.gz}.info"
+          if [ -f "$INFO_FILE" ]; then
+            cp "$INFO_FILE" "ab-partitioned/${OUTPUT_BASE%.img}-info"
+            echo "A/B Partitioning Applied: Yes" >> "ab-partitioned/${OUTPUT_BASE%.img}-info"
+            echo "A/B Partition Date: $(date '+%Y-%m-%d %H:%M:%S')" >> "ab-partitioned/${OUTPUT_BASE%.img}-info"
+          fi
+          
+          # Cleanup
+          rm -f "original.img"
+
+      - name: Basic validation of A/B partitioned image
+        run: |
+          OUTPUT_IMG=$(find ab-partitioned -name "*.img.gz" -print -quit)
+          TEMP_IMG="test_mount.img"
+          gunzip -c "$OUTPUT_IMG" > "$TEMP_IMG"
+          
+          LOOP_DEV=$(sudo losetup --show -P -f "$TEMP_IMG")
+          
+          echo "Partition structure:"
+          sudo fdisk -l "$LOOP_DEV"
+          
+          PART_COUNT=$(lsblk "$LOOP_DEV" | grep -c part)
+          if [ "$PART_COUNT" -lt 5 ]; then
+            echo "Error: Expected at least 5 partitions but found $PART_COUNT"
+            sudo losetup -d "$LOOP_DEV"
+            rm "$TEMP_IMG"
+            exit 1
+          fi
+          
+          sudo mkdir -p /mnt/test_boot
+          sudo mount "${LOOP_DEV}p1" /mnt/test_boot
+          
+          BOOT_FILES=("cmdline.txt" "config.txt" "autoboot.txt" "tryboot.txt")
+          for file in "${BOOT_FILES[@]}"; do
+            if [ ! -f "/mnt/test_boot/$file" ]; then
+              echo "Error: Missing boot file: $file"
+              sudo umount /mnt/test_boot
+              sudo losetup -d "$LOOP_DEV"
+              rm "$TEMP_IMG"
+              exit 1
+            fi
+          done
+          
+          sudo umount /mnt/test_boot
+          sudo losetup -d "$LOOP_DEV"
+          rm "$TEMP_IMG"
+          
+          echo "A/B partitioned image validation passed!"
+    
+      - name: Upload A/B partitioned image
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-lite-${{ needs.build-prep.outputs.full_version }}-AB
+          path: ab-partitioned/*.img.gz
+          
+      - name: Upload A/B partitioned image checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-lite-${{ needs.build-prep.outputs.full_version }}-AB-digest
+          path: ab-partitioned/*.sha256
+          
+      - name: Copy artifacts for release
+        if: ${{ github.event.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+        run: |
+          mkdir -p release-files
+          cp ab-partitioned/* release-files/
+          
+      - name: List artifacts for verification
+        run: |
+          echo "A/B partitioned artifacts ready:"
+          ls -la ab-partitioned/ 
+  
+      - name: Upload job logs
+        if: always()
+        run: |
+          echo "Current working directory: $(pwd)"
+          mkdir -p collected-logs
+          find . -name "*.log" -type f -readable -exec cp --parents {} ./collected-logs/ \; 2>/dev/null || true
+          echo "Found these accessible log files:"
+          find ./collected-logs -type f | sort || echo "No logs found or could not list logs"
+          
+      - name: Upload collected job logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}_ab-partition-image-logs  
+          path: collected-logs/**/*.log
+          if-no-files-found: ignore
+  release:
+    needs: [ab-partition-image, build-image, build-prep]
+    runs-on: ubuntu-24.04-arm
+    if: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+    permissions:
+      contents: write
+    steps:
+      - name: Only runs on default branch
+        run: echo "This job only runs on the default branch"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+
+      - name: Prepare release directory
+        run: |
+          mkdir -p release-files
+          find all-artifacts -name "*.img.gz" -exec cp {} release-files/ \;
+          find all-artifacts -name "*.sha256" -exec cp {} release-files/ \;
+          find all-artifacts -name "*.info" -exec cp {} release-files/ \;
+          
+          echo "Release files prepared:"
+          ls -la release-files/
+
+      - name: Prepare git tag from version for pre-release
+        run: |
+          VERSION="${{ needs.build-prep.outputs.full_version }}"
+          GIT_TAG=$(echo "$VERSION" | sed 's/~/\_/g')
+          echo "Using git tag: $GIT_TAG"
+          echo "git_tag=$GIT_TAG" >> $GITHUB_ENV
+
+      - name: Set build type for release
+        run: |
+          if [ "${{ github.event.inputs.skip_full_image }}" == "true" ]; then
+            echo "BUILD_TYPE_LABEL=[LITE ONLY]" >> $GITHUB_ENV
+          else
+            echo "BUILD_TYPE_LABEL=[COMPLETE]" >> $GITHUB_ENV
+          fi
+    
+      - name: Create GitHub pre-release
+        run: |
+          # if you pass in --draft a git tag won't be created
+          # until the release is manually created in GH
+          # you probably don't want --draft here.
+          gh release create ${{ env.git_tag }} \
+            --prerelease \
+            --title "WLAN Pi OS ${{ needs.build-prep.outputs.full_version }} ${{ env.BUILD_TYPE_LABEL }}" \
+            release-files/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify git tag creation
+        run: |
+          echo "Verifying tag creation for ${{ env.git_tag }}"
+          if git fetch --tags origin && git tag -l | grep -q "${{ env.git_tag }}"; then
+            echo "✅ Tag successfully created and verified: ${{ env.git_tag }}"
+          else
+            echo "⚠️ Warning: Tag verification couldn't find tag: ${{ env.git_tag }}"
+            echo "You may need to manually verify tag creation after the workflow completes."
+          fi
+
+      - name: Upload job logs
+        if: always()
+        run: |
+          echo "Current working directory: $(pwd)"
+          mkdir -p collected-logs
+          find . -name "*.log" -type f -readable -exec cp --parents {} ./collected-logs/ \; 2>/dev/null || true
+          echo "Found these accessible log files:"
+          find ./collected-logs -type f | sort || echo "No logs found or could not list logs"
+          
+      - name: Upload collected job logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}_release-logs 
+          path: collected-logs/**/*.log
+          if-no-files-found: ignore
+
+  upload-logs:
+    runs-on: ubuntu-24.04-arm
+    needs:
+      - build-prep
+      - build-image
+      - ab-partition-image
+      - release
+      - promote-release
+    if: ${{ always() }}
+    steps:
+      - name: Download all log artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-logs"
+          path: all-logs
+          
+      - name: Organize combined logs
+        run: |
+          echo "Downloaded logs:"
+          find all-logs -type f | sort
+          mkdir -p combined-logs
+          for JOB_DIR in all-logs/*; do
+            if [ -d "$JOB_DIR" ]; then
+              JOB_NAME=$(basename "$JOB_DIR")
+              mkdir -p "combined-logs/$JOB_NAME"
+              cp -r "$JOB_DIR"/* "combined-logs/$JOB_NAME/" || echo "No logs found in $JOB_NAME"
+            fi
+          done
+          echo "Log Summary - $(date)" > combined-logs/summary.txt
+          for JOB_DIR in combined-logs/*; do
+            if [ -d "$JOB_DIR" ]; then
+              COUNT=$(find "$JOB_DIR" -type f | wc -l)
+              echo "$(basename $JOB_DIR): $COUNT log files" >> combined-logs/summary.txt
+            fi
+          done
+
+      - name: Upload combined logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}-github-logs
+          path: "combined-logs/**/*.log"
+          if-no-files-found: ignore
+  
   slack-workflow-status:
-    if: ${{ always() && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
-    name: Post Workflow Status to Slack
+    if: ${{ always() && (github.event.inputs.promote_mode != 'true') && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
+    name: Build workflow status to Slack
     needs:
       - build-image
-    runs-on: 'ubuntu-22.04'
+      - ab-partition-image
+      - release
+    runs-on: 'ubuntu-24.04'
     steps:
-      - name: Slack Workflow Notification
+      - name: Slack workflow notification
+        uses: Gamesight/slack-workflow-status@master
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  slack-workflow-promote-status:
+    if: ${{ always() && (github.event.inputs.promote_mode == 'true') && (github.repository_owner == 'WLAN-Pi') && (! github.event.pull_request.head.repo.fork) }}
+    name: Promote workflow status to Slack
+    needs:
+      - promote-release
+    runs-on: 'ubuntu-24.04'
+    steps:
+      - name: Slack workflow notification
         uses: Gamesight/slack-workflow-status@master
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}

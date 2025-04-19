@@ -171,21 +171,37 @@ do
 	esac
 done
 
-export PI_GEN=${PI_GEN:-pi-gen}
+export PI_GEN=${PI_GEN:-pi-gen-bookworm}
 export PI_GEN_REPO=${PI_GEN_REPO:-https://github.com/WLAN-Pi/pi-gen-bookworm/}
-export PI_GEN_RELEASE=${PI_GEN_RELEASE:-WLAN Pi reference}
+export PI_GEN_RELEASE=${PI_GEN_RELEASE:-WLAN Pi}
 
 export ARCH=arm64
 export RELEASE=${RELEASE:-bookworm} # Don't forget to update stage0/prerun.sh
-export IMG_NAME="${IMG_NAME:-raspios-$RELEASE-$ARCH}"
+export IMG_NAME="${IMG_NAME:-wlanpi-os-$RELEASE-$ARCH}"
 
-export USE_QEMU="${USE_QEMU:-0}"
+export WLANPI_VERSION=${WLANPI_VERSION:-$(date '+%Y.%m.%d')}
+export WLANPI_CODENAME=${WLANPI_CODENAME:-"theanine"}
+export WLANPI_FULL_VERSION=${WLANPI_FULL_VERSION}
+export IMG_FILENAME="${IMG_NAME}-${WLANPI_FULL_VERSION}"
+export WLANPI_HOME_URL="https://wlanpi.com"
+export WLANPI_SUPPORT_URL="https://github.com/orgs/WLAN-Pi/discussions"
+export WLANPI_BUG_REPORT_URL="https://github.com/WLAN-Pi"
 export IMG_DATE="${IMG_DATE:-"$(date +%Y%m%d-%H%M%S)"}"
-export IMG_FILENAME="${IMG_FILENAME:-"${IMG_NAME}-${IMG_DATE}"}"
-export ARCHIVE_FILENAME="${ARCHIVE_FILENAME:-"${IMG_NAME}-${IMG_DATE}"}"
-
 export INCLUDE_PACKAGECLOUD_DEV=${INCLUDE_PACKAGECLOUD_DEV:-1}
 
+echo "=== BUILD VARS ==="
+echo "WLANPI_VERSION is ${WLANPI_VERSION}"
+echo "WLANPI_CODENAME is ${WLANPI_CODENAME}"
+echo "WLANPI_FULL_VERSION is ${WLANPI_FULL_VERSION}"
+echo "IMG_FILENAME is ${IMG_FILENAME}"
+echo "WLANPI_HOME_URL is ${WLANPI_HOME_URL}"
+echo "WLANPI_SUPPORT_URL is ${WLANPI_SUPPORT_URL}"
+echo "WLANPI_BUG_REPORT_URL is ${WLANPI_BUG_REPORT_URL}"
+echo "IMG_DATE is ${IMG_DATE}"
+echo "INCLUDE_PACKAGECLOUD_DEV is ${INCLUDE_PACKAGECLOUD_DEV}"
+echo "=== /BUILD VARS ==="
+
+export USE_QEMU="${USE_QEMU:-0}"
 export SCRIPT_DIR="${BASE_DIR}/scripts"
 export WORK_DIR="${WORK_DIR:-"${BASE_DIR}/work/${IMG_NAME}"}"
 export DEPLOY_DIR=${DEPLOY_DIR:-"${BASE_DIR}/deploy"}
@@ -202,9 +218,9 @@ export DEPLOY_COMPRESSION=${DEPLOY_COMPRESSION:-zip}
 export COMPRESSION_LEVEL=${COMPRESSION_LEVEL:-6}
 export LOG_FILE="${WORK_DIR}/build.log"
 
-export TARGET_HOSTNAME=${TARGET_HOSTNAME:-raspberrypi}
+export TARGET_HOSTNAME=${TARGET_HOSTNAME:-wlanpi}
 
-export FIRST_USER_NAME=${FIRST_USER_NAME:-pi}
+export FIRST_USER_NAME=${FIRST_USER_NAME:-wlanpi}
 export FIRST_USER_PASS
 export DISABLE_FIRST_BOOT_USER_RENAME=${DISABLE_FIRST_BOOT_USER_RENAME:-0}
 export WPA_COUNTRY

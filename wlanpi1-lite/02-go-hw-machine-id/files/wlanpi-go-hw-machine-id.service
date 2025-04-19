@@ -1,0 +1,13 @@
+[Unit]
+Description=Set machine-id from WLAN Pi Go hardware serial number
+After=network.target multi-user.target
+Before=systemd-machine-id-commit.service
+
+[Service]
+Type=forking
+RemainAfterExit=yes
+ExecStart=/bin/bash -c '/usr/bin/sudo -u root /usr/local/sbin/go-hw-machine-id.sh'
+TimeoutSec=30
+
+[Install]
+WantedBy=multi-user.target
