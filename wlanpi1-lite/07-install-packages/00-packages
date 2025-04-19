@@ -1,7 +1,7 @@
 ufw
 nftables
 scandump
-dumpcap-minimal
+# dumpcap-minimal
 tcpdump
 traceroute
 mtr-tiny
