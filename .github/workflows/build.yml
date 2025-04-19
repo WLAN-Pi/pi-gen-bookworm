@@ -215,7 +215,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: promote-release-job-logs
+          name: wlanpi-os-${{ steps.identify-rc.outputs.full_version }}-promote-release-logs
           path: "**/*.log"
           if-no-files-found: ignore
   build-prep:
@@ -343,7 +343,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-prep-job-logs 
+          name: wlanpi-os-${{ needs.build-prep.outputs.version }}-build-preps-logs 
           path: collected-logs/**/*.log
           if-no-files-found: ignore
 
@@ -557,7 +557,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-image-job-logs
+          name: wlanpi-os-${{ needs.build-prep.outputs.version }}-build-image-logs
           path: collected-logs/**/*.log
           if-no-files-found: ignore
 
@@ -729,7 +729,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ab-partition-image-job-logs  
+          name: wlanpi-os-${{ needs.build-prep.outputs.version }}-ab-partition-image-logs  
           path: collected-logs/**/*.log
           if-no-files-found: ignore
   release:
@@ -793,7 +793,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: release-job-logs 
+          name: wlanpi-os-${{ needs.build-prep.outputs.version }}-release-logs 
           path: collected-logs/**/*.log
           if-no-files-found: ignore
 
@@ -835,7 +835,7 @@ jobs:
       - name: Upload combined logs
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-bookworm-github-logs
+          name: wlanpi-os-${{ needs.build-prep.outputs.version }}-github-logs
           path: "combined-logs/**/*.log"
           if-no-files-found: ignore
   
