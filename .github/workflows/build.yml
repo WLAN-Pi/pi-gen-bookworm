@@ -793,6 +793,7 @@ jobs:
           find all-artifacts -name "*.img.gz" -exec cp {} release-files/ \;
           find all-artifacts -name "*.sha256" -exec cp {} release-files/ \;
           find all-artifacts -name "*.info" -exec cp {} release-files/ \;
+          find all-artifacts -name "*.sbom.xz" -exec cp {} release-files/ \;
           
           echo "Release files prepared:"
           ls -la release-files/
