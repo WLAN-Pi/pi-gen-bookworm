@@ -410,7 +410,7 @@ jobs:
             mkdir -p wlanpi2-full
             touch wlanpi2-full/SKIP
           fi
-          sudo ./build.sh 2>&1 | tee build_output.log
+          sudo -E ./build.sh 2>&1 | tee build_output.log
 
           echo "========== BUILD OUTPUT FILES =========="
           echo "Contents of deploy directory:"
