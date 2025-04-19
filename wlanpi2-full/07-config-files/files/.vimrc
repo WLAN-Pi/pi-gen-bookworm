@@ -27,13 +27,21 @@ set cursorline                     " Highlight current line
 highlight CursorLine cterm=bold ctermbg=234 guibg=Grey15
 highlight Cursor ctermfg=Black ctermbg=Green
 
-" Indentation
-set expandtab                      " Use spaces instead of tabs
-set tabstop=4                      " Number of spaces a tab counts for
-set softtabstop=4                  " Number of spaces in tab when editing
-set shiftwidth=4                   " Number of spaces to use for autoindent
-set autoindent                     " Copy indent from current line when starting a new line
-set smartindent                    " Smart autoindenting when starting a new line
+" File type specific indentation
+augroup indentation_settings
+    autocmd!
+    " Use spaces for Python
+    autocmd FileType python setlocal expandtab tabstop=4 softtabstop=4 shiftwidth=4
+    
+    " Use tabs for Debian control files
+    autocmd BufRead,BufNewFile **/debian/control,**/debian/rules,**/debian/changelog setlocal noexpandtab tabstop=8 softtabstop=8 shiftwidth=8
+    
+    " Use tabs for Makefiles
+    autocmd FileType make setlocal noexpandtab tabstop=8 shiftwidth=8
+    
+    " Use spaces for shell scripts
+    autocmd FileType sh,bash setlocal expandtab tabstop=4 softtabstop=4 shiftwidth=4
+augroup END
 
 " Search
 set incsearch                      " Search as characters are entered
