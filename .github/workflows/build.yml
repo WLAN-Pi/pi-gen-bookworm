@@ -790,6 +790,14 @@ jobs:
           GIT_TAG=$(echo "$VERSION" | sed 's/~/\_/g')
           echo "Using git tag: $GIT_TAG"
           echo "git_tag=$GIT_TAG" >> $GITHUB_ENV
+
+      - name: Set build type for release
+        run: |
+          if [ "${{ github.event.inputs.skip_full_image }}" == "true" ]; then
+            echo "BUILD_TYPE_LABEL=[LITE ONLY]" >> $GITHUB_ENV
+          else
+            echo "BUILD_TYPE_LABEL=[COMPLETE]" >> $GITHUB_ENV
+          fi
     
       - name: Create GitHub pre-release
         run: |
@@ -798,7 +806,7 @@ jobs:
           # you probably don't want --draft here.
           gh release create ${{ env.git_tag }} \
             --prerelease \
-            --title "WLAN Pi OS ${{ needs.build-prep.outputs.full_version }}" \
+            --title "WLAN Pi OS ${{ needs.build-prep.outputs.full_version }} ${{ env.BUILD_TYPE_LABEL }}" \
             release-files/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
