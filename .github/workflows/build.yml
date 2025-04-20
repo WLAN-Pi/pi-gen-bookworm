@@ -313,7 +313,7 @@ jobs:
               echo "Starting new sequence with number 1"
             else
               # For tags with hyphen format: 2025.04.19-dev.1-theanine
-              CURR_SEQ=$(echo "$LATEST_SEQ" | grep -o "-$BUILD_TYPE\.[0-9]*" | cut -d. -f2)
+              CURR_SEQ=$(echo "$LATEST_SEQ" | grep -o -E "-${BUILD_TYPE}\.[0-9]+" | sed "s/-${BUILD_TYPE}\.//" )
               
               if [ -z "$CURR_SEQ" ]; then
                 echo "Failed to extract sequence number from $LATEST_SEQ, defaulting to 1"
