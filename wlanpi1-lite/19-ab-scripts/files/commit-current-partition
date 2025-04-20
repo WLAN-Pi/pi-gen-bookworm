@@ -1,0 +1,92 @@
+#!/bin/bash -e
+#
+# commit-current-partition - make current partition boot/root set the default
+#
+# Run this after a successful tryboot test to make the current partition permanent
+#
+#   e.g., sudo reboot "2 tryboot" for A to B; works?; then this script
+#   e.g., sudo reboot "1 tryboot" for B to A; works?; then this script
+#
+# Requires: mount
+#
+# Version: v0.1
+# Author: Josh Schmelzle
+# License: BSD-3
+
+echo_status() {
+    echo -e "\e[1;34m>>> $1\e[0m"
+}
+
+echo_debug() {
+    echo -e "\e[1;33mDEBUG: $1\e[0m"
+}
+
+echo_warning() {
+    echo -e "\e[1;31mWARNING: $1\e[0m"
+}
+
+echo_error() {
+    echo -e "\e[1;31mERROR: $1\e[0m"
+    exit 1
+}
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo_error "Need elevated permissions ... run as root (sudo) ..."
+fi
+
+echo_status "Starting partition commit process ..."
+
+CURRENT_ROOT=$(mount | grep ' on / ' | awk '{print $1}')
+CURRENT_BOOT=$(mount | grep ' on /boot ' | awk '{print $1}')
+echo_debug "Current root: $CURRENT_ROOT"
+echo_debug "Current boot: $CURRENT_BOOT"
+
+if [[ $CURRENT_ROOT == *"mmcblk0p5"* && $CURRENT_BOOT == *"mmcblk0p1"* ]]; then
+    echo_debug "Currently on partition set A (boot p1, root p5)"
+    CURRENT_SET="A"
+    CURRENT_BOOT_NUM=1
+elif [[ $CURRENT_ROOT == *"mmcblk0p6"* && $CURRENT_BOOT == *"mmcblk0p2"* ]]; then
+    echo_debug "Currently on partition set B (boot p2, root p6)"
+    CURRENT_SET="B"
+    CURRENT_BOOT_NUM=2
+else
+    echo_warning "Detected mixed partition usage!"
+    echo_debug "Root from: $CURRENT_ROOT"
+    echo_debug "Boot from: $CURRENT_BOOT"
+
+    if [[ $CURRENT_BOOT == *"mmcblk0p1"* ]]; then
+        CURRENT_BOOT_NUM=1
+        echo_debug "Using boot partition 1"
+    elif [[ $CURRENT_BOOT == *"mmcblk0p2"* ]]; then
+        CURRENT_BOOT_NUM=2
+        echo_debug "Using boot partition 2"
+    else
+        echo_error "Unable to determine boot partition number"
+    fi
+fi
+
+echo_status "Committing to current partition set ..."
+
+if [ -f "/boot/autoboot.txt" ]; then
+    echo_debug "Current autoboot.txt content:"
+    cat /boot/autoboot.txt | sed 's/^/    /'
+else
+    echo_debug "autoboot.txt does not exist, will create it"
+fi
+
+echo_debug "Updating autoboot.txt to make current partition set permanent ..."
+cat > /boot/autoboot.txt << EOF
+boot_partition=$CURRENT_BOOT_NUM
+tryboot_a_b=1
+EOF
+
+echo_debug "New autoboot.txt content:"
+cat /boot/autoboot.txt | sed 's/^/    /'
+
+echo_status "Partition commit complete"
+echo_debug "Partition set $CURRENT_SET is now the default boot option"
+echo_debug "This configuration will persist across all future reboots"
+echo ""
+echo_debug "To switch back to the other partition set, you can:"
+echo "1. Run: sudo switch_partitions.sh"
+echo "2. Then reboot: sudo reboot"

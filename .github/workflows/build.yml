@@ -312,12 +312,22 @@ jobs:
               SEQ_NUM=1
               echo "Starting new sequence with number 1"
             else
+              set -o pipefail
+              
               # For tags with hyphen format: 2025.04.19-dev.1-theanine
-              CURR_SEQ=$(echo "$LATEST_SEQ" | grep -o -E "-${BUILD_TYPE}\.[0-9]+" | sed "s/-${BUILD_TYPE}\.//" )
+              CURR_SEQ=$(echo "$LATEST_SEQ" | grep -o -E -- "-${BUILD_TYPE}\.[0-9]+" | sed "s/-${BUILD_TYPE}\.//" )
+              EXIT_STATUS=$?
+              
+              set +o pipefail
+              
+              if [ $EXIT_STATUS -ne 0 ]; then
+                echo "Error: Failed to process sequence number from $LATEST_SEQ"
+                exit 1
+              fi
               
               if [ -z "$CURR_SEQ" ]; then
-                echo "Failed to extract sequence number from $LATEST_SEQ, defaulting to 1"
-                SEQ_NUM=1
+                echo "Error: Failed to extract sequence number from $LATEST_SEQ"
+                exit 1
               else
                 echo "Current sequence number: $CURR_SEQ"
                 SEQ_NUM=$((CURR_SEQ + 1))
