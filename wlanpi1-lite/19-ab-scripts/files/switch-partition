@@ -1,0 +1,72 @@
+#!/bin/bash -e
+# switch-partition - switch between A/B partition sets
+#
+# Simply switches between partition sets without imaging
+#
+# Requires: mount sed
+#
+# Version: v0.1
+# Author:  Josh Schmelzle
+# License: BSD-3
+
+echo_status() {
+    echo -e "\e[1;34m>>> $1\e[0m"
+}
+
+echo_debug() {
+    echo -e "\e[1;33mDEBUG: $1\e[0m"
+}
+
+echo_warning() {
+    echo -e "\e[1;31mWARNING: $1\e[0m"
+}
+
+echo_error() {
+    echo -e "\e[1;31mERROR: $1\e[0m"
+    exit 1
+}
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo_error "Need elevated permissions ... run as root (sudo) ..."
+fi
+
+echo_status "Starting A/B partition switch"
+
+CURRENT_ROOT=$(mount | grep ' on / ' | awk '{print $1}')
+echo_debug "Current root: $CURRENT_ROOT"
+
+if [[ $CURRENT_ROOT == *"mmcblk0p5"* ]]; then
+    echo_debug "Currently booted from A partition set (boot p1, root p5)"
+    ACTIVE_SET="A"
+    TARGET_SET="B"
+    ACTIVE_BOOT_NUM=1
+    TARGET_BOOT_NUM=2
+elif [[ $CURRENT_ROOT == *"mmcblk0p6"* ]]; then
+    echo_debug "Currently booted from B partition set (boot p2, root p6)"
+    ACTIVE_SET="B"
+    TARGET_SET="A"
+    ACTIVE_BOOT_NUM=2
+    TARGET_BOOT_NUM=1
+else
+    echo_error "Unable to determine current boot partition ...\nCurrent root: $CURRENT_ROOT"
+fi
+
+echo_status "Switching from partition set $ACTIVE_SET to partition set $TARGET_SET"
+
+echo_debug "Updating autoboot.txt on active boot partition..."
+cat > /boot/autoboot.txt << EOF
+boot_partition=$TARGET_BOOT_NUM
+tryboot_a_b=1
+EOF
+
+echo_debug "Verifying content of autoboot.txt:"
+cat /boot/autoboot.txt | sed 's/^/    /'
+
+echo_status "Partition switch complete"
+echo_debug "Next boot will use partition set $TARGET_SET"
+echo ""
+echo_debug "To enable the switch, reboot with:"
+echo "sudo reboot"
+echo ""
+echo_debug "If you need to revert without booting the other partition set:"
+echo "sudo bash -c 'echo \"boot_partition=$ACTIVE_BOOT_NUM\" > /boot/autoboot.txt'"

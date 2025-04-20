@@ -1,0 +1,318 @@
+#!/bin/bash -e
+#
+# update-inactive-partition - Update inactive partition set from compressed OS image
+#
+# Works with limited space by streaming the compressed image directly to partitions
+#
+# Requires: gunzip dd blkid mount sed
+#
+# Version: v0.4
+# Author: Josh Schmelzle
+# License: BSD-3
+
+echo_status() {
+    echo -e "\e[1;34m>>> $1\e[0m"
+}
+
+echo_debug() {
+    echo -e "\e[1;33mDEBUG: $1\e[0m"
+}
+
+echo_warning() {
+    echo -e "\e[1;31mWARNING: $1\e[0m"
+}
+
+echo_error() {
+    echo -e "\e[1;31mERROR: $1\e[0m"
+    exit 1
+}
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo_error "Need elevated permissions ... run as root (sudo) ..."
+fi
+
+if [ $# -ne 1 ]; then
+    echo_error "Usage: $0 <image.img.gz>"
+fi
+
+IMAGE_FILE="$1"
+
+if [ ! -f "$IMAGE_FILE" ]; then
+    echo_error "Image file not found: $IMAGE_FILE ..."
+fi
+
+if [[ "$IMAGE_FILE" != *.gz ]]; then
+    echo_error "This script requires a compressed .img.gz file ..."
+fi
+
+for cmd in gunzip dd blkid mount sed; do
+    if ! command -v $cmd &> /dev/null; then
+        echo_error "Required command '$cmd' not found ..."
+    fi
+done
+
+echo_status "Starting partition update process"
+
+CURRENT_ROOT=$(mount | grep ' on / ' | awk '{print $1}')
+echo_debug "Current root: $CURRENT_ROOT"
+
+if [[ $CURRENT_ROOT == *"mmcblk0p5"* ]]; then
+    echo_debug "Currently booted from A partition set (boot p1, root p5)"
+    ACTIVE_SET="A"
+    INACTIVE_BOOT="/dev/mmcblk0p2"
+    INACTIVE_ROOT="/dev/mmcblk0p6"
+    ACTIVE_BOOT="/dev/mmcblk0p1"
+    ACTIVE_ROOT="/dev/mmcblk0p5"
+    HOME_PART="/dev/mmcblk0p7"
+    BOOT_PARTITION=1
+    INACTIVE_BOOT_NUM=2
+    ACTIVE_BOOT_NUM=1
+elif [[ $CURRENT_ROOT == *"mmcblk0p6"* ]]; then
+    echo_debug "Currently booted from B partition set (boot p2, root p6)"
+    ACTIVE_SET="B"
+    INACTIVE_BOOT="/dev/mmcblk0p1"
+    INACTIVE_ROOT="/dev/mmcblk0p5"
+    ACTIVE_BOOT="/dev/mmcblk0p2"
+    ACTIVE_ROOT="/dev/mmcblk0p6"
+    HOME_PART="/dev/mmcblk0p7"
+    BOOT_PARTITION=2
+    INACTIVE_BOOT_NUM=1
+    ACTIVE_BOOT_NUM=2
+else
+    echo_error "Unable to determine current boot partition ...\nCurrent root: $CURRENT_ROOT"
+fi
+
+INACTIVE_SET=$([ "$ACTIVE_SET" == "A" ] && echo "B" || echo "A")
+echo_debug "Updating $INACTIVE_SET partition set"
+echo_debug "Inactive boot: $INACTIVE_BOOT"
+echo_debug "Inactive root: $INACTIVE_ROOT"
+
+INACTIVE_BOOT_PARTUUID=$(blkid -s PARTUUID -o value $INACTIVE_BOOT)
+INACTIVE_ROOT_PARTUUID=$(blkid -s PARTUUID -o value $INACTIVE_ROOT)
+HOME_PARTUUID=$(blkid -s PARTUUID -o value $HOME_PART)
+ACTIVE_ROOT_PARTUUID=$(blkid -s PARTUUID -o value $ACTIVE_ROOT)
+ACTIVE_BOOT_PARTUUID=$(blkid -s PARTUUID -o value $ACTIVE_BOOT)
+
+echo_debug "Inactive boot PARTUUID: $INACTIVE_BOOT_PARTUUID"
+echo_debug "Inactive root PARTUUID: $INACTIVE_ROOT_PARTUUID"
+echo_debug "Active boot PARTUUID: $ACTIVE_BOOT_PARTUUID"
+echo_debug "Active root PARTUUID: $ACTIVE_ROOT_PARTUUID"
+echo_debug "Home PARTUUID: $HOME_PARTUUID"
+
+echo_status "WLAN Pi $INACTIVE_SET partition update"
+echo_debug "Using compressed OS image: $IMAGE_FILE"
+
+TEMP_DIR=$(mktemp -d)
+mkdir -p "$TEMP_DIR/mnt_boot" "$TEMP_DIR/mnt_root"
+
+echo_debug "Analyzing compressed image structure ..."
+gunzip -c "$IMAGE_FILE" | dd bs=512 count=34 of="$TEMP_DIR/mbr.img" 2>/dev/null
+PART_INFO=$(fdisk -l "$TEMP_DIR/mbr.img" 2>/dev/null || echo "Failed to read partition info")
+echo "$PART_INFO"
+
+echo_debug "Defining default partition offsets ..."
+BOOT_START=8192        # Default boot partition start
+ROOT_START=1056768     # Default root partition start
+
+IMAGE_PARTS=$(echo "$PART_INFO" | grep -c -E "mbr.img[0-9]")
+echo_debug "Image has $IMAGE_PARTS partitions"
+
+# Standard OS image has 2 partitions (boot+root)
+if [ "$IMAGE_PARTS" -eq 2 ]; then
+    echo_debug "Detected standard image (non A/B partitioned)"
+
+    BOOT_START_STR=$(echo "$PART_INFO" | grep 'img1' | awk '{print $2}')  # Column 2 is start
+    if [[ -n "$BOOT_START_STR" && "$BOOT_START_STR" =~ ^[0-9]+$ ]]; then
+        BOOT_START=$BOOT_START_STR
+        echo_debug "Found boot partition start: $BOOT_START"
+    else
+        echo_debug "Using default boot start: $BOOT_START"
+    fi
+
+    # Use the size directly from column 4 instead of calculating
+    BOOT_SIZE_STR=$(echo "$PART_INFO" | grep 'img1' | awk '{print $4}')  # Column 4 is sectors
+    if [[ -n "$BOOT_SIZE_STR" && "$BOOT_SIZE_STR" =~ ^[0-9]+$ ]]; then
+        BOOT_SIZE=$BOOT_SIZE_STR
+        echo_debug "Detected boot partition size: $BOOT_SIZE sectors ($(($BOOT_SIZE * 512 / 1024 / 1024)) MB)"
+    else
+        BOOT_SIZE=524288  # 256MB default
+        echo_debug "Using default boot size: $(($BOOT_SIZE * 512 / 1024 / 1024)) MB"
+    fi
+
+    # Extract root partition details from standard image - use the correct columns
+    ROOT_START_STR=$(echo "$PART_INFO" | grep 'img2' | awk '{print $2}')  # Column 2 is start
+    if [[ -n "$ROOT_START_STR" && "$ROOT_START_STR" =~ ^[0-9]+$ ]]; then
+        ROOT_START=$ROOT_START_STR
+        echo_debug "Found root partition start: $ROOT_START"
+    else
+        echo_debug "Using default root start: $ROOT_START"
+    fi
+
+    # Use the size directly from column 4 instead of calculating
+    ROOT_SIZE_STR=$(echo "$PART_INFO" | grep 'img2' | awk '{print $4}')  # Column 4 is sectors
+    if [[ -n "$ROOT_SIZE_STR" && "$ROOT_SIZE_STR" =~ ^[0-9]+$ ]]; then
+        ROOT_SIZE=$ROOT_SIZE_STR
+        echo_debug "Detected root partition size: $ROOT_SIZE sectors ($(($ROOT_SIZE * 512 / 1024 / 1024)) MB)"
+    else
+        ROOT_SIZE=5242880  # 2.5GB default
+        echo_debug "Using default root size: $(($ROOT_SIZE * 512 / 1024 / 1024)) MB"
+    fi
+# A/B partitioned image has at least 3 partitions
+else
+    echo_debug "Detected A/B partitioned image"
+    # Use defaults for A/B partitioned images
+    BOOT_START=2048
+    BOOT_SIZE=524288      # 256MB
+    ROOT_START=532480     # After Boot B
+    ROOT_SIZE=5242880     # 2.5GB
+    echo_debug "Using A/B partition defaults"
+fi
+
+echo_debug "Using boot partition offset: $BOOT_START sectors"
+echo_debug "Using root partition offset: $ROOT_START sectors"
+
+echo_debug "Checking destination partition sizes..."
+
+BOOT_TARGET_SIZE=$(lsblk -b ${INACTIVE_BOOT} -o SIZE -n | tr -d '[:space:]')
+ROOT_TARGET_SIZE=$(lsblk -b ${INACTIVE_ROOT} -o SIZE -n | tr -d '[:space:]')
+
+BOOT_TARGET_SIZE_MB=$((BOOT_TARGET_SIZE / 1024 / 1024))
+ROOT_TARGET_SIZE_MB=$((ROOT_TARGET_SIZE / 1024 / 1024))
+echo_debug "Target boot partition size: ${BOOT_TARGET_SIZE_MB} MB"
+echo_debug "Target root partition size: ${ROOT_TARGET_SIZE_MB} MB"
+
+BOOT_IMAGE_SIZE_BYTES=$((BOOT_SIZE * 512))
+ROOT_IMAGE_SIZE_BYTES=$((ROOT_SIZE * 512))
+BOOT_IMAGE_SIZE_MB=$((BOOT_IMAGE_SIZE_BYTES / 1024 / 1024))
+ROOT_IMAGE_SIZE_MB=$((ROOT_IMAGE_SIZE_BYTES / 1024 / 1024))
+
+echo_debug "Boot image size: ${BOOT_IMAGE_SIZE_MB} MB (${BOOT_SIZE} sectors)"
+echo_debug "Root image size: ${ROOT_IMAGE_SIZE_MB} MB (${ROOT_SIZE} sectors)"
+
+if [ $BOOT_IMAGE_SIZE_BYTES -gt $BOOT_TARGET_SIZE ]; then
+    echo_warning "Boot image (${BOOT_IMAGE_SIZE_MB} MB) is larger than target partition (${BOOT_TARGET_SIZE_MB} MB)"
+    echo_warning "Will copy only what fits in the target partition"
+    BOOT_SIZE=$((BOOT_TARGET_SIZE / 512))
+    echo_debug "Adjusted boot copy size to: $((BOOT_SIZE * 512 / 1024 / 1024)) MB (${BOOT_SIZE} sectors)"
+fi
+
+if [ $ROOT_IMAGE_SIZE_BYTES -gt $ROOT_TARGET_SIZE ]; then
+    echo_warning "Root image (${ROOT_IMAGE_SIZE_MB} MB) is larger than target partition (${ROOT_TARGET_SIZE_MB} MB)"
+    ROOT_SIZE=$((ROOT_TARGET_SIZE / 512))
+    echo_debug "Adjusted root copy size to: $((ROOT_SIZE * 512 / 1024 / 1024)) MB (${ROOT_SIZE} sectors) to prevent truncation"
+fi
+
+echo_debug "Verifying target partitions ..."
+if [[ "$INACTIVE_BOOT" != "/dev/mmcblk0p1" && "$INACTIVE_BOOT" != "/dev/mmcblk0p2" ]]; then
+    echo_error "Invalid boot target: $INACTIVE_BOOT - should be either p1 or p2"
+fi
+
+if [[ "$INACTIVE_ROOT" != "/dev/mmcblk0p5" && "$INACTIVE_ROOT" != "/dev/mmcblk0p6" ]]; then
+    echo_error "Invalid root target: $INACTIVE_ROOT - should be either p5 or p6"
+fi
+
+echo_debug "Confirmed targets: Boot=$INACTIVE_BOOT, Root=$INACTIVE_ROOT"
+
+echo_debug "Streaming boot partition to $INACTIVE_BOOT ..."
+gunzip -c "$IMAGE_FILE" | dd bs=512 skip=$BOOT_START count=$BOOT_SIZE of="$INACTIVE_BOOT" conv=notrunc status=progress
+
+echo_debug "Streaming root partition to $INACTIVE_ROOT ..."
+gunzip -c "$IMAGE_FILE" | dd bs=512 skip=$ROOT_START count=$ROOT_SIZE of="$INACTIVE_ROOT" conv=notrunc status=progress
+
+echo_debug "Mounting updated partitions for configuration ..."
+mount "$INACTIVE_BOOT" "$TEMP_DIR/mnt_boot"
+mount "$INACTIVE_ROOT" "$TEMP_DIR/mnt_root"
+
+if [ -f "$TEMP_DIR/mnt_boot/cmdline.txt" ]; then
+    echo_debug "Found cmdline.txt in image, updating for both A and B partitions ..."
+
+    echo_debug "Original cmdline.txt content:"
+    cat "$TEMP_DIR/mnt_boot/cmdline.txt"
+
+    cp "$TEMP_DIR/mnt_boot/cmdline.txt" "$TEMP_DIR/mnt_boot/cmdline.txt.new"
+    echo_debug "Replacing root PARTUUID with ${INACTIVE_ROOT_PARTUUID} for inactive partition ..."
+    sed -i "s|root=PARTUUID=[^ ]*|root=PARTUUID=${INACTIVE_ROOT_PARTUUID}|" "$TEMP_DIR/mnt_boot/cmdline.txt.new"
+
+    echo_debug "Modified cmdline.txt content:"
+    cat "$TEMP_DIR/mnt_boot/cmdline.txt.new"
+
+    mv "$TEMP_DIR/mnt_boot/cmdline.txt.new" "$TEMP_DIR/mnt_boot/cmdline.txt"
+
+    echo_debug "Creating cmdline-b.txt with active root PARTUUID ${ACTIVE_ROOT_PARTUUID} ..."
+    cp "$TEMP_DIR/mnt_boot/cmdline.txt" "$TEMP_DIR/mnt_boot/cmdline-b.txt"
+    sed -i "s|root=PARTUUID=${INACTIVE_ROOT_PARTUUID}|root=PARTUUID=${ACTIVE_ROOT_PARTUUID}|" "$TEMP_DIR/mnt_boot/cmdline-b.txt"
+else
+    echo_warning "cmdline.txt not found in image. Creating from scratch ..."
+
+    BASE_CMDLINE="console=ttyAMA3,115200 console=tty1 root=PARTUUID=PLACEHOLDER rootfstype=ext4 fsck.repair=yes rootwait"
+
+    echo_debug "Creating cmdline.txt for inactive root partition (PARTUUID=${INACTIVE_ROOT_PARTUUID}) ..."
+    echo "${BASE_CMDLINE/PLACEHOLDER/$INACTIVE_ROOT_PARTUUID}" > "$TEMP_DIR/mnt_boot/cmdline.txt"
+
+    echo_debug "Creating cmdline-b.txt for active root partition (PARTUUID=${ACTIVE_ROOT_PARTUUID}) ..."
+    echo "${BASE_CMDLINE/PLACEHOLDER/$ACTIVE_ROOT_PARTUUID}" > "$TEMP_DIR/mnt_boot/cmdline-b.txt"
+fi
+
+echo_debug "--------------------------------"
+echo_debug "Final cmdline.txt:"
+cat "$TEMP_DIR/mnt_boot/cmdline.txt" | sed 's/^/    /'
+echo_debug "--------------------------------"
+echo_debug "Final cmdline-b.txt:"
+cat "$TEMP_DIR/mnt_boot/cmdline-b.txt" | sed 's/^/    /'
+echo_debug "--------------------------------"
+
+echo_debug "Creating tryboot.txt ..."
+cat > "$TEMP_DIR/mnt_boot/tryboot.txt" << EOF
+# This configuration will be used when booting in tryboot mode
+# Point to the alternate partition
+kernel=wlanpi-kernel8.img
+os_prefix=$ACTIVE_BOOT_NUM:/
+cmdline=cmdline-b.txt
+EOF
+
+echo_debug "Creating autoboot.txt on inactive boot partition ..."
+cat > "$TEMP_DIR/mnt_boot/autoboot.txt" << EOF
+boot_partition=$INACTIVE_BOOT_NUM
+tryboot_a_b=1
+EOF
+
+echo_debug "Updating autoboot.txt on active boot partition ..."
+cat > /boot/autoboot.txt << EOF
+boot_partition=$ACTIVE_BOOT_NUM
+tryboot_a_b=1
+EOF
+
+echo_debug "Updating fstab in inactive root partition ..."
+cat > "$TEMP_DIR/mnt_root/etc/fstab" << EOF
+PARTUUID=${INACTIVE_ROOT_PARTUUID}  /        ext4    defaults,noatime  0  1
+PARTUUID=${INACTIVE_BOOT_PARTUUID}  /boot    vfat    defaults          0  2
+PARTUUID=${HOME_PARTUUID}           /home    ext4    defaults,noatime  0  2
+EOF
+
+echo_debug "Unmounting partitions ..."
+umount "$TEMP_DIR/mnt_boot"
+umount "$TEMP_DIR/mnt_root"
+
+echo_debug "Cleaning up ..."
+rm -rf "$TEMP_DIR"
+
+echo_status "$INACTIVE_SET Partitions Update Complete"
+echo ""
+echo_debug "Next Steps:"
+
+TARGET_BOOT_NUM=$INACTIVE_BOOT_NUM
+TARGET_SET=$INACTIVE_SET
+SOURCE_SET=$ACTIVE_SET
+
+echo "1. Test the updated $TARGET_SET partition set:"
+echo "   sudo reboot '$TARGET_BOOT_NUM tryboot'"
+echo ""
+echo "2. After booting to $TARGET_SET, verify the system is working correctly:"
+echo "   sudo boot-info  # Check boot configuration"
+echo ""
+echo "3. If the $TARGET_SET partition is working as expected and you want to make it permanent:"
+echo "   sudo commit-current-partition"
+echo ""
+echo "4. To return to partition set $SOURCE_SET without making $TARGET_SET permanent:"
+echo "   sudo reboot  # Will return to $SOURCE_SET automatically"
+echo ""
