@@ -188,17 +188,21 @@ export WLANPI_SUPPORT_URL="https://github.com/orgs/WLAN-Pi/discussions"
 export WLANPI_BUG_REPORT_URL="https://github.com/WLAN-Pi"
 export IMG_DATE="${IMG_DATE:-"$(date +%Y%m%d-%H%M%S)"}"
 export INCLUDE_PACKAGECLOUD_DEV=${INCLUDE_PACKAGECLOUD_DEV:-1}
+export SKIP_FULL_IMAGE=${SKIP_FULL_IMAGE:-false}
 
 echo "=== BUILD VARS ==="
 echo "WLANPI_VERSION is ${WLANPI_VERSION}"
 echo "WLANPI_CODENAME is ${WLANPI_CODENAME}"
 echo "WLANPI_FULL_VERSION is ${WLANPI_FULL_VERSION}"
+echo "RELEASE is ${RELEASE}"
+echo "IMG_NAME is ${IMG_NAME}"
 echo "IMG_FILENAME is ${IMG_FILENAME}"
 echo "WLANPI_HOME_URL is ${WLANPI_HOME_URL}"
 echo "WLANPI_SUPPORT_URL is ${WLANPI_SUPPORT_URL}"
 echo "WLANPI_BUG_REPORT_URL is ${WLANPI_BUG_REPORT_URL}"
 echo "IMG_DATE is ${IMG_DATE}"
 echo "INCLUDE_PACKAGECLOUD_DEV is ${INCLUDE_PACKAGECLOUD_DEV}"
+echo "SKIP_FULL_IMAGE is ${SKIP_FULL_IMAGE}"
 echo "=== /BUILD VARS ==="
 
 export USE_QEMU="${USE_QEMU:-0}"
@@ -330,6 +334,15 @@ fi
 log "Begin ${BASE_DIR}"
 
 STAGE_LIST=${STAGE_LIST:-${BASE_DIR}/stage*}
+if [ "$SKIP_FULL_IMAGE" = "true" ]; then
+    FILTERED_STAGE_LIST=""
+    for stage in ${STAGE_LIST}; do
+        if [[ "$stage" != *"wlanpi2-full"* ]]; then
+            [ -n "$FILTERED_STAGE_LIST" ] && FILTERED_STAGE_LIST+=" "
+            FILTERED_STAGE_LIST+="$stage"
+        fi
+    done
+fi
 export STAGE_LIST
 
 EXPORT_CONFIG_DIR=$(realpath "${EXPORT_CONFIG_DIR:-"${BASE_DIR}/export-image"}")

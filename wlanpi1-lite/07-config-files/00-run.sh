@@ -100,6 +100,7 @@ copy_overlay /etc/avahi/avahi-daemon.conf -o root -g root -m 644
 # Copy config files
 install -m 644 files/.vimrc "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.vimrc"
 install -m 644 files/.tmux.conf "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.tmux.conf"
+install -m 644 files/.bash_aliases "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.bash_aliases"
 install -m 644 files/.vimrc "${ROOTFS_DIR}/root/.vimrc"
 install -m 644 files/.tmux.conf "${ROOTFS_DIR}/root/.tmux.conf"
 
@@ -117,6 +118,7 @@ touch /root/.vim/viminfo
 chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.vimrc
 chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.tmux.conf
 chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.vim
+chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.bash_aliases
 
 # Set permissions for user
 chmod 600 /home/${FIRST_USER_NAME}/.vim/viminfo

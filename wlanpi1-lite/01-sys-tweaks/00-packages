@@ -1,28 +1,30 @@
-raspi-config
-ssh less sudo
-console-setup keyboard-configuration debconf-utils parted
 bash-completion
-python-is-python3
-gpiod
-raspi-gpio
-ca-certificates curl
-fake-hwclock usbutils
+ca-certificates
+console-setup
+curl
+debconf-utils
 dphys-swapfile
-raspberrypi-sys-mods
-pi-bluetooth
-apt-listchanges
-usb-modeswitch
+ethtool
+fake-hwclock
+file
+less
 libpam-chksshpwd
+parted
+pciutils
+policykit-1
+python-is-python3
+raspberrypi-sys-mods
+raspi-config
+raspi-utils
+rpi-eeprom
 rpi-update
 rsync
-policykit-1
-ssh-import-id
-ethtool
-pciutils
-rpi-eeprom
-raspi-utils
-unzip zip
-file
-vim
-tmux
 screen
+ssh
+ssh-import-id
+sudo
+tmux
+unzip
+usbutils
+vim
+zip

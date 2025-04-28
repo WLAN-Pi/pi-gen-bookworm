@@ -129,6 +129,6 @@ none | *)
 esac
 
 if [ -f "${SBOM_FILE}" ]; then
-	xz -c "${SBOM_FILE}" > "$DEPLOY_DIR/wlanpi_$(basename "${SBOM_FILE}").xz"
+	xz -c "${SBOM_FILE}" > "$DEPLOY_DIR/$(basename "${SBOM_FILE}").xz"
 fi
 cp "$INFO_FILE" "$DEPLOY_DIR/"
