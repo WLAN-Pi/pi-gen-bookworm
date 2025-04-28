@@ -16,3 +16,6 @@ wavemon
 nmap
 traceroute
 gpsd
+lm-sensors
+avahi-utils
+mtr-tiny

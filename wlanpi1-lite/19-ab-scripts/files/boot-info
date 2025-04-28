@@ -27,43 +27,64 @@ echo_status() {
 }
 
 echo_debug() {
-    echo -e "\e[1;33mDEBUG: $1\e[0m"
+    echo -e "\e[1;36mDEBUG: $1\e[0m"
 }
 
-echo_status "A/B Partition Boot Investigation"
+echo_status "A/B partition boot investigation"
 
-echo_debug "System Information:"
+echo_debug "System information:"
 uname -a | sed 's/^/    /'
 
-echo_debug "Model Information:"
+echo_debug "Model information:"
 cat /proc/device-tree/model | sed 's/^/    /' || echo "    [Could not read model]"
-echo ""
+echo
 
-echo_debug "Current Partition Set Analysis:"
+echo_debug "OS issue information:"
+if [ -f "/etc/rpi-issue" ]; then
+    cat /etc/rpi-issue | sed 's/^/    /'
+else
+    echo "    [File /etc/rpi-issue does not exist]"
+fi
+
+echo_debug "Current partition set analysis:"
 CURRENT_BOOT_DEV=$(findmnt -n -o SOURCE /boot)
 CURRENT_ROOT_DEV=$(findmnt -n -o SOURCE /)
+CURRENT_HOME_DEV=$(findmnt -n -o SOURCE /home)
 
-# Updated partition check logic for new layout
 if [[ "$CURRENT_BOOT_DEV" == "/dev/mmcblk0p1" && "$CURRENT_ROOT_DEV" == "/dev/mmcblk0p5" ]]; then
     echo "    Currently using partition set A (boot from p1, root from p5)"
+    CURRENT_SET="A"
+    BOOT1_DEV=$CURRENT_BOOT_DEV
 elif [[ "$CURRENT_BOOT_DEV" == "/dev/mmcblk0p2" && "$CURRENT_ROOT_DEV" == "/dev/mmcblk0p6" ]]; then
     echo "    Currently using partition set B (boot from p2, root from p6)"
+    CURRENT_SET="B"
+    BOOT1_DEV="/dev/mmcblk0p1"  # Always reference partition 1
 else
     echo "    WARNING: Mixed partition usage!"
     echo "    Boot from: $CURRENT_BOOT_DEV"
     echo "    Root from: $CURRENT_ROOT_DEV"
+    if [[ "$CURRENT_BOOT_DEV" == "/dev/mmcblk0p1" ]]; then
+        CURRENT_SET="Mixed (boot A)"
+        BOOT1_DEV=$CURRENT_BOOT_DEV
+    elif [[ "$CURRENT_BOOT_DEV" == "/dev/mmcblk0p2" ]]; then
+        CURRENT_SET="Mixed (boot B)"
+        BOOT1_DEV="/dev/mmcblk0p1"  # Always reference partition 1
+    else
+        CURRENT_SET="Unknown"
+        BOOT1_DEV="/dev/mmcblk0p1"  # Default to partition 1
+    fi
 fi
 
 echo_debug "Current /etc/fstab contents:"
 cat /etc/fstab | sed 's/^/    /'
 
-echo_debug "Mount Points:"
+echo_debug "Mount points:"
 mount | grep mmcblk0 | sed 's/^/    /'
 
-echo_debug "Current Boot Partition Contents:"
+echo_debug "Current boot partition contents:"
 ls -la /boot | sed 's/^/    /'
 
-echo_debug "cmdline.txt contents:"
+echo_debug "Contents of /boot/cmdline.txt:"
 cat /boot/cmdline.txt | sed 's/^/    /'
 
 echo_debug "Contents of /boot/cmdline-b.txt:"
@@ -87,6 +108,38 @@ else
     echo "    [File does not exist]"
 fi
 
+echo_debug "Checking boot partition 1 autoboot.txt (controls boot device after power loss):"
+
+if [[ "$CURRENT_BOOT_DEV" != "/dev/mmcblk0p1" ]]; then
+
+    BOOT1_MNT=$(mktemp -d)
+    
+    if mount "$BOOT1_DEV" "$BOOT1_MNT"; then
+        if [ -f "$BOOT1_MNT/autoboot.txt" ]; then
+            echo "    Contents of partition 1 autoboot.txt:"
+            cat "$BOOT1_MNT/autoboot.txt" | sed 's/^/        /'
+            BOOT1_PARTITION=$(grep "boot_partition=" "$BOOT1_MNT/autoboot.txt" | sed 's/boot_partition=//')
+        else
+            echo "    [Partition 1 has no autoboot.txt file]"
+            BOOT1_PARTITION="None"
+        fi
+        
+        umount "$BOOT1_MNT"
+    else
+        echo "    [Failed to mount boot partition 1]"
+        BOOT1_PARTITION="Unknown"
+    fi
+    
+    rmdir "$BOOT1_MNT"
+else
+    if [ -f "/boot/autoboot.txt" ]; then
+        BOOT1_PARTITION=$(grep "boot_partition=" /boot/autoboot.txt | sed 's/boot_partition=//')
+    else
+        echo "    [Partition 1 has no autoboot.txt file]"
+        BOOT1_PARTITION="None"
+    fi
+fi
+
 echo_debug "Partition layout:"
 lsblk -o NAME,SIZE,MOUNTPOINT,FSTYPE,LABEL,UUID,PARTUUID | sed 's/^/    /'
 
@@ -94,12 +147,13 @@ echo_debug "Partition flags:"
 parted /dev/mmcblk0 print | sed 's/^/    /'
 
 echo_debug "Partition usage statistics:"
+df -h | grep root | sed 's/^/    /'
 df -h | grep mmcblk0 | sed 's/^/    /'
 
 echo_debug "Kernel command line used:"
 cat /proc/cmdline | sed 's/^/    /'
 
-echo_debug "Boot history (last 5 boots):"
+echo_debug "Boot history:"
 journalctl --list-boots | head -5 | sed 's/^/    /'
 
 echo_debug "Boot messages related to mmc/partitions:"
@@ -108,10 +162,61 @@ dmesg | grep -i -e mmc -e partition -e boot | head -20 | sed 's/^/    /'
 echo_debug "Bootloader version:"
 vcgencmd bootloader_version | sed 's/^/    /'
 
-echo_debug "Summary:"
-echo "    Currently on partition set: $(if [[ "$CURRENT_BOOT_DEV" == "/dev/mmcblk0p1" ]]; then echo "A"; else echo "B"; fi)"
-echo "    Boot partition: $CURRENT_BOOT_DEV ($(df -h $CURRENT_BOOT_DEV | tail -1 | awk '{print $5}') used)"
-echo "    Root partition: $CURRENT_ROOT_DEV ($(df -h $CURRENT_ROOT_DEV | tail -1 | awk '{print $5}') used)"
-echo "    Default boot set in autoboot.txt: $(if grep -q "boot_partition=1" /boot/autoboot.txt; then echo "A"; else echo "B"; fi)"
+BOOT1_DEV="/dev/mmcblk0p1"
+DEFAULT_BOOT="Unknown"
 
-echo_status "Investigation complete!"
+if [[ "$CURRENT_BOOT_DEV" != "$BOOT1_DEV" ]]; then
+    BOOT1_MNT=$(mktemp -d)
+    
+    if mount "$BOOT1_DEV" "$BOOT1_MNT"; then
+        if [ -f "$BOOT1_MNT/autoboot.txt" ]; then
+            BOOT1_PARTITION=$(grep "boot_partition=" "$BOOT1_MNT/autoboot.txt" | sed 's/boot_partition=//')
+            
+            if [ "$BOOT1_PARTITION" = "1" ]; then
+                DEFAULT_BOOT="A"
+            elif [ "$BOOT1_PARTITION" = "2" ]; then
+                DEFAULT_BOOT="B"
+            fi
+        else
+            DEFAULT_BOOT="A (default without autoboot.txt)"
+        fi
+        umount "$BOOT1_MNT"
+    else
+        echo_warning "Failed to mount boot partition 1 to check autoboot.txt"
+    fi
+    rmdir "$BOOT1_MNT"
+else
+    if [ -f "/boot/autoboot.txt" ]; then
+        BOOT1_PARTITION=$(grep "boot_partition=" /boot/autoboot.txt | sed 's/boot_partition=//')
+        
+        if [ "$BOOT1_PARTITION" = "1" ]; then
+            DEFAULT_BOOT="A"
+        elif [ "$BOOT1_PARTITION" = "2" ]; then
+            DEFAULT_BOOT="B"
+        fi
+    else
+        DEFAULT_BOOT="A (default without autoboot.txt)"
+    fi
+fi
+
+POWER_LOSS_BOOT="Unknown"
+if [ "$BOOT1_PARTITION" = "1" ]; then
+    POWER_LOSS_BOOT="A"
+elif [ "$BOOT1_PARTITION" = "2" ]; then
+    POWER_LOSS_BOOT="B"
+elif [ "$BOOT1_PARTITION" = "None" ]; then
+    POWER_LOSS_BOOT="A (default)"
+else
+    POWER_LOSS_BOOT="Unknown"
+fi
+
+echo_debug "Summary:"
+echo " - Currently on partition set: $CURRENT_SET"
+echo " - Current boot partition: $CURRENT_BOOT_DEV"
+echo " - Current root partition: $CURRENT_ROOT_DEV"
+echo " - Default boot set in current autoboot.txt: $DEFAULT_BOOT"
+if [[ "$POWER_LOSS_BOOT" == "A" || "$POWER_LOSS_BOOT" == "B" || "$POWER_LOSS_BOOT" == "A (likely default)" ]]; then
+    echo " - Partition set that will boot after power loss: $POWER_LOSS_BOOT"
+fi
+echo " - Boot partition 1 autoboot.txt setting: $(if [ "$BOOT1_PARTITION" = "None" ]; then echo "Not present"; else echo "$BOOT1_PARTITION"; fi)"
+echo_status "Done"

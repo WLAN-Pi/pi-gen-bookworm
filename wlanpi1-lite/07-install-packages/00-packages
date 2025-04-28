@@ -1,7 +1,8 @@
 ufw
 nftables
 scandump
-# dumpcap-minimal (dumpcap provided by tshark)
 tcpdump
 traceroute
 mtr-tiny
+lm-sensors
+avahi-utils

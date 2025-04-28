@@ -1,12 +1,12 @@
 #!/bin/bash -e
-# ab_partition.sh - A/B partition script for WLAN Pi OS images
+# ab-partition - A/B partition script for WLAN Pi OS images
 #
-# Convert a standard WLAN Pi OS image to an A/B partition structure.
-# Intended for system updates on WLAN Pi compute module eMMC devices.
-# Created for bookworm based images.
+# Converts a WLAN Pi OS image to an A/B partition structure.
+# Intended to create base image for eMMC based devices.
+# Created for the WLAN Pi Go and bookworm based images.
 #
-# Usage: sudo ./ab_partition.sh <input> <output>
-# Troubleshooting: sudo bash -x ./ab_partition.sh <input> <output>
+# Usage: sudo ./ab-partition <input> <output>
+# Troubleshooting: sudo bash -x ./ab-partition <input> <output>
 #
 # Requires: parted mount util-linux dosfstools rsync
 #
@@ -16,13 +16,13 @@
 
 function show_usage {
     echo "Usage: $0 <input> <output>"
-    echo ""
+    echo
     echo "Convert a standard WLAN Pi OS image to an A/B partition structure"
-    echo ""
+    echo
     echo "Arguments:"
-    echo "  input    Path to original WLAN Pi OS image"
-    echo "  output   Path where new A/B partitioned image will be saved"
-    echo ""
+    echo "  input    path to original WLAN Pi OS image"
+    echo "  output   path where new A/B partitioned image will be saved"
+    echo
     echo "Example:"
     echo "  $0 wlanpi-os-20250416-154720-lite.img wlanpi-os-20250416-154720-lite-AB-partitioned.img"
     exit 1
@@ -45,7 +45,7 @@ if [ "$#" -ne 2 ]; then
 fi
 
 echo "=== WLAN Pi A/B partition script ==="
-echo ""
+echo
 
 INPUT_IMAGE="$1"
 OUTPUT_IMAGE="$2"
@@ -59,6 +59,7 @@ TEMP_DIR=$(mktemp -d)
 ORIGINAL_BOOT="$TEMP_DIR/original_boot"
 ORIGINAL_ROOT="$TEMP_DIR/original_root"
 NEW_ROOTFS="$TEMP_DIR/new_rootfs"
+mkdir -p "$ORIGINAL_BOOT" "$ORIGINAL_ROOT" "$NEW_ROOTFS"
 
 cleanup() {  
   echo "Starting cleanup ..."
@@ -76,9 +77,6 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-echo "Debug: creating temporary directories for mounting ..."
-mkdir -p "$ORIGINAL_BOOT" "$ORIGINAL_ROOT" "$NEW_ROOTFS"
-
 echo "Input image: $INPUT_IMAGE"
 echo "Output image: $OUTPUT_IMAGE"
 echo "Temp directory: $TEMP_DIR"
@@ -94,17 +92,16 @@ PERSISTENT_MIN_SIZE=$((8 * 1024 * 1024))   # 8 MB
 BUFFER_SIZE=$((32 * 1024 * 1024))          # 32 MB
 ALIGN=$((1024 * 1024))
 
-required_size=$ALIGN
-required_size=$((required_size + BOOT1_SIZE))
-required_size=$((required_size + BOOT2_SIZE))
-required_size=$((required_size + ROOT1_SIZE))
-required_size=$((required_size + ROOT2_SIZE))
-required_size=$((required_size + PERSISTENT_MIN_SIZE))
-required_size=$((required_size + BUFFER_SIZE))
-required_size=$(((required_size + ALIGN - 1) / ALIGN * ALIGN )) # Align to boundary
+NEW_SIZE=$ALIGN
+NEW_SIZE=$((NEW_SIZE + BOOT1_SIZE))
+NEW_SIZE=$((NEW_SIZE + BOOT2_SIZE))
+NEW_SIZE=$((NEW_SIZE + ROOT1_SIZE))
+NEW_SIZE=$((NEW_SIZE + ROOT2_SIZE))
+NEW_SIZE=$((NEW_SIZE + PERSISTENT_MIN_SIZE))
+NEW_SIZE=$((NEW_SIZE + BUFFER_SIZE))
+NEW_SIZE=$(((NEW_SIZE + ALIGN - 1) / ALIGN * ALIGN )) # Align to boundary
 
-echo "Required size: $((required_size / 1024 / 1024)) MB"
-NEW_SIZE=$((required_size))
+echo "Required size: $((NEW_SIZE / 1024 / 1024)) MB"
 
 echo "Creating a copy of the original image ..."
 if [ -f "$OUTPUT_IMAGE" ]; then
@@ -236,7 +233,7 @@ parted --script "$OUTPUT_IMAGE" unit s mkpart logical ext4 ${lp3_start} ${lp3_en
 
 partprobe "$NEW_LOOP_DEV"
 
-echo "Waiting for logical partitions to appear..."
+echo "Waiting for logical partitions to appear ..."
 success=false
 for i in {1..10}; do
     if [ -e "${NEW_LOOP_DEV}p5" ] && [ -e "${NEW_LOOP_DEV}p6" ] && [ -e "${NEW_LOOP_DEV}p7" ]; then
@@ -244,7 +241,7 @@ for i in {1..10}; do
         success=true
         break
     fi
-    echo "Waiting for partitions (attempt $i)..."
+    echo "Waiting for partitions (attempt $i) ..."
     sleep 1
     partprobe "$NEW_LOOP_DEV"
 done
@@ -274,11 +271,48 @@ else
     echo "Fat size set to 32 ..."
 fi
 
-mkfs.vfat -F "$FAT_SIZE" -n BOOTFS "${BOOT1_DEV}"
+mkfs.vfat -F "$FAT_SIZE" -n BOOT1FS "${BOOT1_DEV}"
 mkfs.vfat -F "$FAT_SIZE" -n BOOT2FS "${BOOT2_DEV}"
-mkfs.ext4 -F -L ROOTFS "${ROOT1_DEV}" -O ^huge_file
-mkfs.ext4 -F -L ROOTFS2 "${ROOT2_DEV}" -O ^huge_file
+mkfs.ext4 -F -L ROOT1FS "${ROOT1_DEV}" -O ^huge_file
+mkfs.ext4 -F -L ROOT2FS "${ROOT2_DEV}" -O ^huge_file
 mkfs.ext4 -F -L HOME "${PERSISTENT_DEV}" -O ^huge_file
+
+echo "Setting up minimal failback on boot B partition ..."
+BOOT2_MNT="$TEMP_DIR/boot2_mnt"
+mkdir -p "$BOOT2_MNT"
+mount -v "${BOOT2_DEV}" "${BOOT2_MNT}" -t vfat
+
+echo "Copying essential firmware files to boot B ..."
+for file in bootcode.bin start.elf fixup.dat; do
+    if [ -f "$ORIGINAL_BOOT/$file" ]; then
+        cp -v "$ORIGINAL_BOOT/$file" "$BOOT2_MNT/"
+    else
+        echo "WARNING: Essential file $file not found in original boot!"
+    fi
+done
+
+echo "Creating failback config.txt on boot B ..."
+cat > "$BOOT2_MNT/config.txt" << EOF
+# Minimal config.txt for failback mechanism to boot A
+# Boot B partition is not fully provisioned yet
+[tryboot]
+boot_partition=1
+EOF
+
+echo "Creating failback tryboot.txt on boot B ..."
+cat > "$BOOT2_MNT/tryboot.txt" << EOF
+# FAILBACK CONFIGURATION
+# Immediately points back to A partitions if tryboot is used
+# Safety mechanism for when partition B is not fully provisioned
+kernel=wlanpi-kernel8.img
+os_prefix=1:/
+EOF
+
+sync
+umount "$BOOT2_MNT"
+rmdir "$BOOT2_MNT"
+
+echo "Minimal failback setup on Boot B partition completed ..."
 
 echo "Getting partition UUIDs ..."
 BOOT1_PARTUUID=$(blkid -s PARTUUID -o value "${BOOT1_DEV}")
@@ -329,13 +363,13 @@ if [ -f "$NEW_ROOTFS/boot/cmdline.txt" ]; then
     cp "$NEW_ROOTFS/boot/cmdline.txt" "$NEW_ROOTFS/boot/cmdline-b.txt"
     sed -i "s|PARTUUID=${ROOT1_PARTUUID}|PARTUUID=${ROOT2_PARTUUID}|" "$NEW_ROOTFS/boot/cmdline-b.txt"
 
-    echo ""
+    echo
     echo "New cmdline.txt content:"
     cat "$NEW_ROOTFS/boot/cmdline.txt"
-    echo ""
+    echo
     echo "New cmdline-b.txt content:"
     cat "$NEW_ROOTFS/boot/cmdline-b.txt"
-    echo ""
+    echo
 else
     echo "ERROR: cmdline.txt not found in boot directory!"
 fi
@@ -385,12 +419,12 @@ echo "Ensuring the overlay directory exists ..."
 if [ ! -d "$NEW_ROOTFS/boot/overlays" ] && [ -d "$ORIGINAL_BOOT/overlays" ]; then
     mkdir -p "$NEW_ROOTFS/boot/overlays"
     cp -a "$ORIGINAL_BOOT/overlays/"* "$NEW_ROOTFS/boot/overlays/"
-    echo "Ensured overlays directory exists with proper content"
+    echo "Ensured overlays directory exists with proper content ..."
 fi
 
 echo "Setting up A/B boot configuration ..."
 cat > "$NEW_ROOTFS/boot/autoboot.txt" << EOF
-boot_partition=0
+boot_partition=1
 tryboot_a_b=1
 EOF
 
@@ -492,37 +526,37 @@ if ! grep -q "PARTUUID=${ROOT1_PARTUUID}" "$NEW_ROOTFS/boot/cmdline.txt"; then
   exit 1
 fi
 
-echo "Unmounting and cleaning up ..."
+echo "Performing controlled cleanup and finalization ..."
 sync
 if mountpoint -q "$NEW_ROOTFS/boot"; then
-  umount "$NEW_ROOTFS/boot"
+umount "$NEW_ROOTFS/boot"
 fi
 if mountpoint -q "$NEW_ROOTFS/home"; then
-  umount "$NEW_ROOTFS/home"
+umount "$NEW_ROOTFS/home"
 fi
 if mountpoint -q "$NEW_ROOTFS"; then
-  umount "$NEW_ROOTFS"
+umount "$NEW_ROOTFS"
 fi
 if mountpoint -q "$ORIGINAL_BOOT"; then
-  umount "$ORIGINAL_BOOT"
+umount "$ORIGINAL_BOOT"
 fi
 if mountpoint -q "$ORIGINAL_ROOT"; then
-  umount "$ORIGINAL_ROOT"
+umount "$ORIGINAL_ROOT"
 fi
 if [ -n "$ORIG_LOOP_DEV" ] && losetup -a | grep -q "$ORIG_LOOP_DEV"; then
-  losetup -d "$ORIG_LOOP_DEV"
+losetup -d "$ORIG_LOOP_DEV"
 fi
 if [ -n "$NEW_LOOP_DEV" ] && losetup -a | grep -q "$NEW_LOOP_DEV"; then
-  losetup -d "$NEW_LOOP_DEV"
+losetup -d "$NEW_LOOP_DEV"
 fi
 sleep 1
 rm -rf "$TEMP_DIR" || {
-  echo "Warning: some resources still busy, trying lazy unmount ..."
-  for mnt in "$NEW_ROOTFS/boot" "$NEW_ROOTFS/home" "$NEW_ROOTFS"; do
+echo "Warning: some resources still busy, trying lazy unmount ..."
+for mnt in "$NEW_ROOTFS/boot" "$NEW_ROOTFS/home" "$NEW_ROOTFS"; do
     mountpoint -q "$mnt" && umount -l "$mnt"
-  done
-  sleep 1
-  rm -rf "$TEMP_DIR" || echo "Warning: could not fully clean up temp directory"
+done
+sleep 1
+rm -rf "$TEMP_DIR" || echo "Warning: could not fully clean up temp directory"
 }
 
 echo "Calculating SHA-256 hash for $OUTPUT_IMAGE ..."
@@ -530,21 +564,24 @@ HASH=$(sha256sum "$OUTPUT_IMAGE")
 echo "$HASH" > "$OUTPUT_IMAGE".sha256
 HASH_ONLY=$(echo "$HASH" | awk '{print $1}')
 
-echo ""
+echo
 echo "====================================="
 echo "A/B partitioned image created successfully!"
 echo "Output image: $OUTPUT_IMAGE"
 echo "SHA-256 hash: $HASH_ONLY"
-echo ""
+echo
 echo "Verify integrity with: sha256sum --check ""$OUTPUT_IMAGE"".sha256"
-echo ""
+echo
 echo "The image has the following partition structure:"
-echo "1: BOOTFS   - Primary boot partition (A)"
+echo "1: BOOT1FS   - Primary boot partition (A)"
 echo "2: BOOT2FS  - Primary boot partition (B)"
 echo "3: Extended partition container for additional logical partitions"
-echo "  - 5: ROOTFS   - Root partition (A)"
-echo "  - 6: ROOTFS2  - Root partition (B)"
+echo "  - 5: ROOT1FS   - Root partition (A)"
+echo "  - 6: ROOT2FS  - Root partition (B)"
 echo "  - 7: HOME     - Persistent partition (automatically expanded on first boot)"
-echo ""
+echo
 echo "Partition structure is optimized for CM4s with 8 GB of disk"
 echo "====================================="
+echo
+echo "ab-partition finished ..."
+echo
