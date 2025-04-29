@@ -378,7 +378,7 @@ Key failure modes and recovery strategies:
 
 ### Phase 1: checksum verification
 
-Initial implementation will use sha256cums to verify image integrity.
+Initial implementation will use sha256sums to verify image integrity.
 
 - Aims to provide basic protection against corrupted downloads and accidental modifications.
 - Each release image has a checksum file (`.sha256`)
