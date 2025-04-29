@@ -143,17 +143,17 @@ Required Python packages
   2. p2/p6 for B (boot2/root2)
   3. p7 for /home (persistent)
 - Raspbian/Raspberry Pi OS based system built off Debian Bookworm using pi-gen
-- Local network connectivity (no Internet required)
+- Local network connectivity (must work without Internet)
 
 ## Implementation Guidelines
 
 Device validation
 
 - All API endpoints and CLI commands must verify that the device is a WLAN Pi Go model
-- Implementation must check /home/.device-info/model and confirm it returns "Go" before processing any operations
+- Implementation must check `/home/.device-info/model` and confirm it returns `Go` before processing any operations
 - Non-Go devices must receive clear error messages explaining compatibility limitations
 - Validation should occur early in the request processing flow to prevent any unnecessary operations
-- API endpoints should return HTTP 403 Forbidden with appropriate error details when used on incompatible devices
+- API endpoints should return HTTP 403 with appropriate error details when used on incompatible devices
 
 Filesystem space checking
 
@@ -217,11 +217,11 @@ Testing strategy
 
 Performance considerations
 
-- Streaming decompression for minimal memory usage
-- Progress reporting for long-running operations
-- Progress for each step in the process (image transfer, update alternate partition, reboot, verification)
-- Partition validation
 - Support for resource-constrained environments of 1 GB of RAM and 8 GB of eMMC
+- Streaming decompression requirement as we are unable to extract the image due to storage constraints
+- Progress reporting for long-running operations
+- Progress for each step and substeps in the process (image transfer, update alternate partition, reboot, verification)
+- Partition validation
 
 Local network constraints
 
@@ -233,7 +233,7 @@ Local network constraints
 Cross-platform compatibility
 
 - Enable CORS support in FastAPI configuration
-- Design WebSocket interface
+- Design WebSocket interface (phase 2)
 - Support Chrome apps connecting over local network (10.42.0.1)
 - Create platform-agnostic APIs for maximum client compatibility
 - Document cross-origin requirements for client applications
@@ -245,7 +245,7 @@ OpenAPI documentation
 - Document error responses and codes
 - Provide usage examples for common operations
 
-WebSocket support
+WebSocket support (phase 2)
 
 - Implement real-time progress updates via WebSockets
 - Support subscribing to specific operation updates
@@ -260,10 +260,10 @@ Progress reporting
   - Time remaining estimate
   - Detailed substep progress
   - Recent log messages
-- Event-based progress updates via WebSockets
+- Event-based progress updates via WebSockets (phase 2)
 - Support for operation cancellation when appropriate
 
-Telemetry API
+Telemetry API (phase 2)
 
 - Collect anonymous system health information
 - Hardware status before/after updates
@@ -276,29 +276,31 @@ Metrics collection
 - Track update success/failure rates
 - Measure update duration and resource usage
 - Monitor common failure points
-- Collect usage patterns to improve user experience
-- All metrics must be local-only with no external reporting
+- Collect usage patterns to improve user experience (phase 2)
+- All metrics must be local-only with no external reporting 
 
 Deliverables
 
 - Python package with core functionality
-- CLI entry point scripts reimplementing current bash functionality in Python
+- CLI entry point scripts reimplementing current bash script functionality in Python
 - FastAPI application with endpoints for all operations
 - Documentation for both CLI and API usage
 - Test suites for all components
-- Update status dashboard
+- Update status dashboard through APIs that will be implemented in the `wlanpi-webui` package
+- Update status CLI script which will return the current update step and status
 
 Future enhancements
 
-- Update verification tests
-- Improved error recovery
-- Image prevalidation
+- Additional update verification tests
+- Improved error recovery beyond the minimal required for phase 1
+- Image signature prevalidation
 
 Design inspirations
 
-- Betaflight Configurator
-- ESC-Configurator
-- Flipper Zero
+- [ESPHome](https://web.esphome.io/)
+- [Betaflight Configurator](https://app.betaflight.com/#)
+- [ESC-Configurator](https://esc-configurator.com/)
+- [Flipper Zero](https://flipperzero.one/update)
 
 ## Multi-device support
 
@@ -328,7 +330,7 @@ Code organization
 - Core functionality should be separated from Go-specific implementation details
 - Public interfaces should be stable to support future device handlers
 
-The system should be designed with flexibility to support multiple device types and partition layouts:
+The system should be designed for the WLAN Pi Go, but with flexibility to support multiple device types and partition layouts:
 
 1. Device abstraction layer
    - Abstract device-specific configurations
@@ -344,11 +346,10 @@ The system should be designed with flexibility to support multiple device types 
    - Phase 1: WLAN Pi Go (fully tested and supported)
 
 4. Implementation considerations
-   - All hardcoded paths will be replaced with configuration-driven paths
-   - Device validators will check for compatible partition structures
-   - API will include device compatibility information
+   - No hardcoded paths for partitions, instead use configuration-driven paths
+   - Device validators to check for compatible partition structures
 
-The goal is to make sure the implementation is specifically designed and tested for the WLAN Pi Go, but with an architecture that will minimize changes needed to support additional device types or partition layouts in the future.
+A goal to consider is to make sure the implementation is specifically designed and tested for the WLAN Pi Go, but with an architecture that will allow minimal changes needed to support additional device types or partition layouts in the future.
 
 ## Recovery scenarios
 
@@ -376,7 +377,7 @@ Key failure modes and recovery strategies:
 
 - Automatic fallback to known-good partition
 - Boot validation checks
-- Self-healing for common configuration issues
+- Ideally self-healing for easily detectable issues
 
 ## Image verification strategy
 
@@ -445,13 +446,13 @@ Reasons why signature verification is not considered in phase 1:
 
 After an update, the system must verify the following to be considered successful:
 
-1. Core system health
+1. Network functionality
+   - WLAN interface must exist
+   - System must respond on one of the USB OTG interfaces (confirm reachability somehow)
+
+2. Core system health
    - All essential services (SSH, Networking, API) must start correctly
    - System must boot within expected timeframe (under 60 seconds)
-
-2. Network functionality
-   - WLAN interface must exist
-   - System must respond to ping on one of the USB OTG interfaces
 
 3. Application functionality
    - WLAN Pi specific applications must start successfully specifically wlanpi-webui and wlanpi-core.
@@ -462,9 +463,11 @@ After an update, the system must verify the following to be considered successfu
 The system will perform these verifications automatically after booting into
 the new partition and report results through both API and CLI interfaces.
 
+If successful, automatically commit the newly booted current partition set as active.
+
 ## Technical architecture
 
-File Structure
+Suggested file structure for proof of concept prior to migrating into `wlanpi-core`:
 
 ```
 partition_manager/
@@ -614,13 +617,13 @@ def is_lock_stale()  # Check if existing lock is stale
 def force_release_lock()  # Force release a stale lock
 ```
 
-6. MetricsCollecter class
+6. MetricsCollecter class (phase 2, probably, or minimal implementation in phase 1)
 
 Responsibilities:
 
 - Collect system performance metrics
 - Track update success/failure
-- Store telemetry data (phase 2)
+- Store telemetry data
 
 Key functions:
 
@@ -653,7 +656,7 @@ def get_compatibility_error()  # Return detailed compatibility error if any
    
 update_partition.py:
 
-- Reimplements `update-alternate-partition` in Python
+- Reimplements `update-alternate-partition` bash script in Python
 - Takes OS image path as input
 - Shows progress during update
 - Handles error conditions
@@ -661,32 +664,35 @@ update_partition.py:
 
 boot_info.py:
 
-- Reimplements boot-info in Python
+- Reimplements `boot-info` bash script in Python
 - Displays current boot configuration
 - Shows partition layout and status
 - Identifies which set will boot after power loss
 
 commit_partition.py:
 
-- Reimplements commit-current-partition in Python
+- Reimplements `commit-current-partition` bash script in Python
 - Makes current partition set the default
 - Updates boot partition 1's autoboot.txt
 - Confirms changes were applied
 
 tryboot_partition.py:
 
-- Reimplements tryboot-alternate-partition in Python
+- Reimplements `tryboot-alternate-partition` bash script in Python
 - Configures for temporary boot to alternate set
 - Prepares for testing without making permanent changes
 - Provides instructions for completing the process
 
 rollback_partition.py:
 
+- New CLI script not implemented previously in bash
 - Provides manual rollback to previous partition set
 - Restores previous configuration
 - Confirms rollback success
 
 9. API endpoints
+
+These APIs are designed for the Go and should not run on non-Go devices at this time.
 
 API router-specific middleware:
 
