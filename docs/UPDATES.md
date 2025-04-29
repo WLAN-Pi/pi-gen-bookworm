@@ -25,98 +25,90 @@ Software developers integrating update capabilities into WebUI (wlanpi-webui) or
 ## Key features and components
 
 1. Partition management core
+   - PartitionManager class:
+      - Identify current partition set (A or B)
+      - Determine alternate/inactive partition set
+      - Mount/unmount partitions safely
+      - Validate partition structure
+      - Handle PARTUUID mapping and tracking
 
-PartitionManager class:
-
-- Identify current partition set (A or B)
-- Determine alternate/inactive partition set
-- Mount/unmount partitions safely
-- Validate partition structure
-- Handle PARTUUID mapping and tracking
-
-ConfigManager class:
-
-- Update boot configuration files (cmdline.txt, autoboot.txt, tryboot.txt)
-- Handle file system configurations (fstab)
-- Manage partition boot preferences
+   - ConfigManager class:
+      - Update boot configuration files (cmdline.txt, autoboot.txt, tryboot.txt)
+      - Handle file system configurations (fstab)
+      - Manage partition boot preferences
 
 2. Update process components
+   
+   - ImageHandler class:
+      - Identify partition layouts in images
+      - Extract and write boot/root partitions
+      - Stream and decompress OS images
+      - Verify image compatibility with target hardware
+      - Check image integrity through checksums
 
-ImageHandler class:
+   - UpdateManager class:
 
-- Identify partition layouts in images
-- Extract and write boot/root partitions
-- Stream and decompress OS images
-- Verify image compatibility with target hardware
-- Check image integrity through checksums
-
-UpdateManager class:
-
-- Orchestrate complete update process
-- Validate update prerequisites
-- Handle error conditions and rollbacks
-- Manage filesystem space requirements
-- Report detailed progress during updates
+      - Orchestrate complete update process
+      - Validate update prerequisites
+      - Handle error conditions and rollbacks
+      - Manage filesystem space requirements
+      - Report detailed progress during updates
 
 3. Verification components
    
-BootValidator class:
+   - BootValidator class:
+      - Check current boot status
+      - Validate partition integrity
+      - Report boot configuration issues
 
-- Check current boot status
-- Validate partition integrity
-- Report boot configuration issues
-
-SystemValidator class:
-
-- Verify system functionality post-update
-- Monitor boot success/failure
-- Collect diagnostic information
+   - SystemValidator class:
+      - Verify system functionality post-update
+      - Monitor boot success/failure
+      - Collect diagnostic information
 
 4. Interface layers
 
-CLI interface:
+   - CLI interface:
+      - Command-line tools reimplementing the proof of concept bash scripts functionality
+      - Progress indicators using standard library
+      - Interactive confirmation prompts
 
-- Command-line tools reimplementing the proof of concept bash scripts functionality
-- Progress indicators using standard library
-- Interactive confirmation prompts
-
-API interface:
-
-- Synchronous FastAPI endpoints for each operation
-- Ensure a lock on the update process and order of operations
-- Asynchronous status updates via WebSockets
-- Support for WebUI and mobile app integration
-- OpenAPI documentation
+   - API interface:
+      - Synchronous FastAPI endpoints for each operation
+      - Ensure a lock on the update process and order of operations
+      - Asynchronous status updates via WebSockets (phase 2)
+      - Support for WebUI and mobile app integration
+      - OpenAPI documentation
 
 ## Use cases
 
 1. Update alternate partition
 
-- User uploads new OS image via CLI, WebUI, or mobile app.
-- System identifies alternate/inactive partition set
-- System verifies sufficient space is available on target partitions
-- Image is streamed and written to alternate partitions from compressed image
-- Configuration is updated for tryboot
+   - User uploads new OS image via CLI, WebUI, or mobile app.
+   - System identifies alternate/inactive partition set
+   - System verifies sufficient space is available on target partitions
+   - Image is streamed and written to alternate partitions from compressed image
+   - Configuration is updated for tryboot
 
 2. Verify alternate partition
 
-- System reboots to alternate partition (tryboot)
-- Boot status is validated
-- System functionality is verified
-- User is presented with commit option
+   - System reboots to alternate partition (tryboot)
+   - Boot status is validated
+   - System functionality is verified
+   - User is presented with commit option
 
 3. Commit partition change
 
-- User confirms alternate partition is working (CLI prompt or API call)
-- System updates boot configuration
-- New partition set becomes the default
-- System persists changes across reboots/power cycles
+   - User confirms alternate partition is working (CLI prompt or API call)
+   - System updates boot configuration
+   - New partition set becomes the default
+   - System persists changes across reboots/power cycles
 
 4. Rollback to previous partition
 
-- If new partition fails, automatic revert on next boot
-- Manual rollback option available through dedicated API and LCI commands
-- System keeps configuration backup for safe recovery
+   - If new partition fails, automatic revert on next boot
+   - Manual rollback option available through dedicated API and LCI commands
+   - System keeps configuration backup for safe recovery
 
 ## Persistent storage
 
@@ -129,9 +121,12 @@ API interface:
 
 Required Python packages
 
-- FastAPI for API endpoints
-- Pydantic for data validation
-- pytest for testing
+- `fastapi` for API endpoints
+- `pydantic` for data validation
+- `pytest` for testing
+
+Others
+
 - websockets for real-time progress updates (phase 2)
 - sh for system command execution (standard library alternatives preferred)
 
@@ -357,27 +352,27 @@ Key failure modes and recovery strategies:
 
 1. Image corruption during transfer
 
-- Implement checksum verification before extraction
-- Retry capability for network transfers
-- Clear feedback about corruption location
+   - Implement checksum verification before extraction
+   - Retry capability for network transfers
+   - Clear feedback about corruption location
 
-1. Power loss during partition writing
+2. Power loss during partition writing
 
-- Journal write operations where possible
-- Record progress checkpoints
-- Provide recovery procedure on next boot
+   - Journal write operations where possible
+   - Record progress checkpoints
+   - Provide recovery procedure on next boot
 
 3. Network connection failure during API operations
 
-- Timeouts with configurable retry logic
-- Status endpoint to check progress after reconnection
-- Resume capability for interrupted transfers
+   - Timeouts with configurable retry logic
+   - Status endpoint to check progress after reconnection
+   - Resume capability for interrupted transfers
 
 4. Unexpected system state after reboot
 
-- Automatic fallback to known-good partition
-- Boot validation checks
-- Ideally self-healing for easily detectable issues
+   - Automatic fallback to known-good partition
+   - Boot validation checks
+   - Ideally self-healing for easily detectable issues
 
 ## Image verification strategy
 
@@ -506,7 +501,7 @@ partition_manager/
 
 ## Detailed Component Specifications
 
-1. PartitionManager Class
+### PartitionManager Class
 
 Responsibilities:
 
@@ -530,7 +525,7 @@ def validate_partition_structure()  # Ensures required partitions exist
 def check_available_space(partition)  # Returns available space in bytes
 ```
 
-2. ConfigManager Class
+### ConfigManager Class
    
 Responsibilities:
 
@@ -551,7 +546,7 @@ def restore_config(filename)  # Restore from backup if needed
 def get_boot_history()  # Get recent boot attempts and status
 ```
 
-3. ImageHandler Class
+### ImageHandler Class
    
 Responsibilities:
 
@@ -574,7 +569,7 @@ def check_image_compatibility(image_path)  # Check if image works with this hard
 def calculate_space_requirements(image_path)  # Determine space needed for update
 ```
 
-4. UpdateManager class
+### UpdateManager class
 
 Responsibilities:
 
@@ -599,7 +594,7 @@ def resume_from_checkpoint()  # Resume interrupted update
 def report_progress(step, percentage, message)  # Update progress information
 ```
 
-5. LockManager class
+### LockManager class
 
 Responsibilities:
 
@@ -617,7 +612,7 @@ def is_lock_stale()  # Check if existing lock is stale
 def force_release_lock()  # Force release a stale lock
 ```
 
-6. MetricsCollecter class (phase 2, probably, or minimal implementation in phase 1)
+### MetricsCollecter class (phase 2, probably, or minimal implementation in phase 1)
 
 Responsibilities:
 
@@ -635,7 +630,7 @@ def get_update_statistics()  # Return aggregated update statistics
 def record_operation_timing(operation, duration)  # Record performance timing
 ```
 
-7. DeviceValidator class
+### DeviceValidator class
 
 Responsibilities:
 
@@ -652,7 +647,7 @@ def validate_device_compatibility()  # Comprehensive compatibility check
 def get_compatibility_error()  # Return detailed compatibility error if any
 ```
 
-8. CLI Scripts
+### CLI Scripts
    
 update_partition.py:
 
@@ -690,7 +685,22 @@ rollback_partition.py:
 - Restores previous configuration
 - Confirms rollback success
 
-9. API endpoints
+### API endpoints
+
+Suggestions:
+
+```
+GET    /api/v1/system/partitions/info
+POST   /api/v1/system/partitions/update
+POST   /api/v1/system/partitions/tryboot
+POST   /api/v1/system/partitions/commit
+POST   /api/v1/system/partitions/rollback
+GET    /api/v1/system/partitions/status
+GET    /api/v1/system/partitions/history
+GET    /api/v1/system/partitions/lock-status
+POST   /api/v1/system/partitions/release-lock
+GET    /api/v1/system/partitions/metrics
+```
 
 These APIs are designed for the Go and should not run on non-Go devices at this time.
 
@@ -725,21 +735,6 @@ def validate_go_device():
     if not validator.is_go_device():
         print("Error: partition management is only available on WLAN Pi Go devices")
         sys.exit(1)
-```
-
-In general:
-
-```
-GET    /api/v1/system/partitions/info
-POST   /api/v1/system/partitions/update
-POST   /api/v1/system/partitions/tryboot
-POST   /api/v1/system/partitions/commit
-POST   /api/v1/system/partitions/rollback
-GET    /api/v1/system/partitions/status
-GET    /api/v1/system/partitions/history
-GET    /api/v1/system/partitions/lock-status
-POST   /api/v1/system/partitions/release-lock
-GET    /api/v1/system/partitions/metrics
 ```
 
 GET /api/v1/system/partitions/info:
