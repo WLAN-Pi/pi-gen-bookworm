@@ -492,6 +492,7 @@ mount $HOME_PART /home
 echo "Expansion complete (hopefully!) ..."
 df -h /home
 fdisk -l $DEVICE
+touch /etc/home-partition-expanded
 EOF
 
 chmod +x "$NEW_ROOTFS/usr/local/sbin/expand-home-partition"
