@@ -37,7 +37,7 @@ alias secure-delete='shred -zvu -n 7'
 alias mkdir='mkdir -pv'
 alias path='echo -e ${PATH//:/\\n}'
 alias now='date +"%T"'
-alias today='date +"%Y-%m%d"'
+alias today='date +"%Y-%m-%d"'
 
 alias ports='netstat -tulanp'
 alias connections='netstat -nat | grep ESTABLISHED | wc -l'
