@@ -5,7 +5,7 @@ set encoding=utf-8                 " Use UTF-8 encoding
 set fileencoding=utf-8             " Use UTF-8 encoding for written files
 
 " UI configuration
-colorscheme elflord                " Theme
+colorscheme industry               " Theme
 set number                         " Show line numbers
 set relativenumber                 " Show relative line numbers
 set wildmenu                       " Visual autocomplete for command menu
