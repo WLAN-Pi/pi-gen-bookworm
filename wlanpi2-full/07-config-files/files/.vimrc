@@ -5,7 +5,7 @@ set encoding=utf-8                 " Use UTF-8 encoding
 set fileencoding=utf-8             " Use UTF-8 encoding for written files
 
 " UI configuration
-colorscheme industry               " Theme
+colorscheme elflord                " Theme
 set number                         " Show line numbers
 set relativenumber                 " Show relative line numbers
 set wildmenu                       " Visual autocomplete for command menu
@@ -66,6 +66,7 @@ set smartcase                      " Override 'ignorecase' if search contains up
 " File handling
 set confirm                        " Prompt to save changes
 set autoread                       " Automatically read file changes from outside
+autocmd FocusGained * :checktime   " Catch changes that happened while in background
 set hidden                         " Allow buffer switching without saving
 set nobackup                       " Don't create backup files
 set noswapfile                     " Don't create swap files
@@ -142,7 +143,7 @@ nnoremap <leader>fr :browse oldfiles<CR>
 let g:netrw_banner = 0            " Hide banner
 let g:netrw_liststyle = 3         " Tree view
 let g:netrw_browse_split = 4      " Open in previous window
-let g:netrw_winsize = 30          " Width of explorer
+let g:netrw_winsize = 25          " Width of explorer
 nnoremap <leader>fe :Lexplore<CR> " Toggle file explorer
 
 " Tab navigation
