@@ -86,7 +86,7 @@ echo "Original image size: $(( ORIGINAL_SIZE / 1024 / 1024 )) MB"
 
 BOOT1_SIZE=$((256 * 1024 * 1024))          # 256 MB
 BOOT2_SIZE="${BOOT1_SIZE}"
-ROOT1_SIZE=$((2750 * 1024 * 1024))         # 2.75 GB
+ROOT1_SIZE=$((3000 * 1024 * 1024))         # 3 GB
 ROOT2_SIZE="${ROOT1_SIZE}"
 PERSISTENT_MIN_SIZE=$((8 * 1024 * 1024))   # 8 MB
 BUFFER_SIZE=$((32 * 1024 * 1024))          # 32 MB
