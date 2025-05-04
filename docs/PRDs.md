@@ -1,4 +1,4 @@
 # PRDs
 
 - [CI.md](CI.md)
-- [UPDATES](UPDATES.md)
+- [VERSIONING.md](VERSIONING.md)
