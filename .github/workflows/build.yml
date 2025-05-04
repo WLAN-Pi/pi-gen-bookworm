@@ -436,7 +436,8 @@ jobs:
             jq \
             binfmt-support \
             systemd-container \
-            arch-test
+            arch-test \ 
+            bmap-tools
           
           # requires for sbom generation
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
