@@ -56,11 +56,12 @@ on:
         type: boolean
         default: true
 
-      ab_partition_suffix:
-        description: '🔨 BUILD: [DO NOT MODIFY] filename suffix for A/B partitioned image'
-        required: false
-        type: string
-        default: 'AB_PARTITION'
+      # Only 10 inputs allowed for workflow_dispatch
+      # ab_partition_suffix:
+      #   description: '🔨 BUILD: [DO NOT MODIFY] filename suffix for A/B partitioned image'
+      #   required: false
+      #   type: string
+      #   default: 'AB_PARTITION'
 
       ab_root_size_mb:
         description: '🔨 BUILD: size of each root partition in MB for A/B partitioned images'
@@ -232,7 +233,7 @@ jobs:
             --full-version ${{ steps.identify-rc.outputs.full_version }} \
             --codename ${{ steps.identify-rc.outputs.codename }} \
             --info-dir promoted \
-            --ab-suffix ${{ github.event.inputs.ab_partition_suffix }}
+            --ab-suffix AB_PARTITION
           then
             echo "::error::Failed to generate release notes ..."
             mkdir -p release-notes
@@ -776,7 +777,7 @@ jobs:
           echo
 
           VERSION="${{ needs.build-prep.outputs.full_version }}"
-          AB_SUFFIX="${{ github.event.inputs.ab_partition_suffix }}"
+          AB_SUFFIX="AB_PARTITION"
           AB_ROOT_SIZE="${{ github.event.inputs.ab_root_size_mb }}"
           
           WORK_DIR="${GITHUB_WORKSPACE}"
@@ -905,13 +906,13 @@ jobs:
       - name: Upload A/B partitioned image
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}-lite-${{ github.event.inputs.ab_partition_suffix }}
+          name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}-lite-AB_PARTITION
           path: ab-partitioned/*.img.gz
           
       - name: Upload A/B partitioned image checksums
         uses: actions/upload-artifact@v4
         with:
-          name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}-lite-${{ github.event.inputs.ab_partition_suffix }}-sha256
+          name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}-lite-AB_PARTITION-sha256
           path: ab-partitioned/*.sha256
   
       - name: Upload job logs
@@ -998,7 +999,7 @@ jobs:
             --build-type ${{ github.event.inputs.build_type }} \
             --info-dir release-files \
             --skip-full ${{ github.event.inputs.skip_full_image }} \
-            --ab-suffix ${{ github.event.inputs.ab_partition_suffix }}
+            --ab-suffix AB_PARTITION
           then
             echo "::error::Failed to generate release notes ..."
             mkdir -p release-notes
