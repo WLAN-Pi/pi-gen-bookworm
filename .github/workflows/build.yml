@@ -62,6 +62,12 @@ on:
         type: string
         default: 'AB_PARTITION'
 
+      ab_root_size_mb:
+        description: '🔨 BUILD: size of each root partition in MB for A/B partitioned images'
+        required: false
+        type: string
+        default: '2500'
+
       point_base:
         description: '🔨 BUILD: for point releases (2025.04.19.1): specify base to create patch release for (e.g., 2025.04.19)'
         required: false
@@ -771,9 +777,11 @@ jobs:
 
           VERSION="${{ needs.build-prep.outputs.full_version }}"
           AB_SUFFIX="${{ github.event.inputs.ab_partition_suffix }}"
+          AB_ROOT_SIZE="${{ github.event.inputs.ab_root_size_mb }}"
           
           WORK_DIR="${GITHUB_WORKSPACE}"
           echo "Working directory: ${WORK_DIR}"
+          echo "Using root partition size: ${AB_ROOT_SIZE} MB"
 
           mkdir -p ab-partitioned
           
@@ -803,8 +811,14 @@ jobs:
 
           # debug mode:
           # sudo bash -x ./scripts/ab-partition "original.img" "$OUTPUT_BASE"
-          sudo ./scripts/ab-partition "original.img" "$OUTPUT_BASE"
-          
+          if [ -n "$AB_ROOT_SIZE" ] && [[ "$AB_ROOT_SIZE" =~ ^[0-9]+$ ]]; then
+            echo "Using custom root partition size: $AB_ROOT_SIZE MB"
+            sudo ./scripts/ab-partition "original.img" "$OUTPUT_BASE" "$AB_ROOT_SIZE"
+          else
+            echo "Using default root partition size"
+            sudo ./scripts/ab-partition "original.img" "$OUTPUT_BASE"
+          fi
+
           if [ ! -f "$OUTPUT_BASE" ]; then
             echo "Error: A/B partition script failed to create output image"
             exit 1
