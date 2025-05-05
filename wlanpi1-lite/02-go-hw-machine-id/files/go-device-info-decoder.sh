@@ -82,7 +82,7 @@ MODEL=$(cat "$MODEL_FILE")
 echo "Encoded serial number: $ENCODED_SERIAL"
 echo "Decoded serial number: $DECODED_SERIAL"
 echo "Product ID: $PRODUCT_ID"
-echo "Firwmare: $FIRMWARE"
+echo "Firmware: $FIRMWARE"
 echo "Hardware revision: $REVISION"
 echo "Model: $MODEL"
 
