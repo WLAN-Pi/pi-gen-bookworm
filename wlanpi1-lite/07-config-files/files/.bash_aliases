@@ -18,10 +18,13 @@ alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 
-alias ls='exa --grid --color auto --icons --sort=type'
-alias ll='exa --long --color always --icons --sort=type'
-alias la='exa --grid --all --color auto --icons --sort=type'
-alias lt='exa --tree --level=2 --long --icons'
+alias l='ls --color=auto -F'
+alias ls='ls --color=auto -F'
+alias ll='ls -lh --color=auto --group-directories-first'
+alias la='ls -A --color=auto -F'
+alias lt='ls -lht --color=auto'
+alias lS='ls -lhS --color=auto'
+alias lx='ls -l --color=auto -X'
 
 alias lless='less -RFX'
 
