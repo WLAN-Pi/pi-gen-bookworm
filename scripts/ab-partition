@@ -15,16 +15,18 @@
 # License: BSD-3
 
 function show_usage {
-    echo "Usage: $0 <input> <output>"
+    echo "Usage: $0 <input> <output> [<root_size_mb>]"
     echo
     echo "Convert a standard WLAN Pi OS image to an A/B partition structure"
     echo
     echo "Arguments:"
-    echo "  input    path to original WLAN Pi OS image"
-    echo "  output   path where new A/B partitioned image will be saved"
+    echo "  input           path to original WLAN Pi OS image"
+    echo "  output          path where new A/B partitioned image will be saved"
+    echo "  root_size_mb    (optional) size of each root partition in MB (default: 2500)"
     echo
     echo "Example:"
     echo "  $0 wlanpi-os-20250416-154720-lite.img wlanpi-os-20250416-154720-lite-AB-partitioned.img"
+    echo "  $0 wlanpi-os-20250416-154720-lite.img wlanpi-os-20250416-154720-lite-AB-partitioned.img 4000"
     exit 1
 }
 
@@ -40,7 +42,7 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-if [ "$#" -ne 2 ]; then
+if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
     show_usage
 fi
 
@@ -49,6 +51,20 @@ echo
 
 INPUT_IMAGE="$1"
 OUTPUT_IMAGE="$2"
+DEFAULT_ROOT_SIZE=2500 # MB
+
+if [ "$#" -eq 3 ]; then
+    if [[ "$3" =~ ^[0-9]+$ ]]; then
+        ROOT_SIZE_MB="$3"
+        echo "Using custom root partition size: $ROOT_SIZE_MB MB"
+    else
+        echo "Error: root_size_mb must be a positive integer."
+        exit 1
+    fi
+else
+    ROOT_SIZE_MB=$DEFAULT_ROOT_SIZE
+    echo "Using default root partition size: $ROOT_SIZE_MB MB"
+fi
 
 if [ ! -f "$INPUT_IMAGE" ]; then
     echo "Error: '$INPUT_IMAGE' not found."
@@ -84,12 +100,12 @@ echo "Temp directory: $TEMP_DIR"
 ORIGINAL_SIZE=$(stat -c%s "$INPUT_IMAGE")
 echo "Original image size: $(( ORIGINAL_SIZE / 1024 / 1024 )) MB"
 
-BOOT1_SIZE=$((256 * 1024 * 1024))          # 256 MB
+BOOT1_SIZE=$((256 * 1024 * 1024))           # 256 MB
 BOOT2_SIZE="${BOOT1_SIZE}"
-ROOT1_SIZE=$((2700 * 1024 * 1024))         # 2.7 GB
+ROOT1_SIZE=$((ROOT_SIZE_MB * 1024 * 1024))  # MB to bytes
 ROOT2_SIZE="${ROOT1_SIZE}"
-PERSISTENT_MIN_SIZE=$((8 * 1024 * 1024))   # 8 MB
-BUFFER_SIZE=$((32 * 1024 * 1024))          # 32 MB
+PERSISTENT_MIN_SIZE=$((8 * 1024 * 1024))    # 8 MB
+BUFFER_SIZE=$((32 * 1024 * 1024))           # 32 MB
 ALIGN=$((1024 * 1024))
 
 NEW_SIZE=$ALIGN
@@ -133,7 +149,6 @@ BOOT1_SIZE=$((ORIGINAL_BOOT_SIZE + 64 * 1024 * 1024)) # Original + 64MB margin
 BOOT1_SIZE=$(((BOOT1_SIZE + ALIGN - 1) / ALIGN * ALIGN)) # Align to boundary
 BOOT1_SIZE=$((BOOT1_SIZE < 256 * 1024 * 1024 ? 256 * 1024 * 1024 : BOOT1_SIZE)) # Min 256MB
 
-ROOT1_SIZE=$((2500 * 1024 * 1024)) # ~2.5 size for root parts
 ROOT1_SIZE=$(((ROOT1_SIZE + ALIGN - 1) / ALIGN * ALIGN)) # Align to boundary
 
 BOOT2_SIZE=$BOOT1_SIZE

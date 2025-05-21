@@ -45,14 +45,14 @@ augroup indentation_settings
     autocmd!
     " Webdev
     autocmd FileType html,css,javascript,typescript,json,yaml,yml setlocal expandtab tabstop=2 softtabstop=2 shiftwidth=2
-    
+
     " Debian
     autocmd BufRead,BufNewFile **/debian/control,**/debian/rules,**/debian/changelog setlocal noexpandtab tabstop=8 softtabstop=8 shiftwidth=8
-    
+
     " Make
     autocmd FileType make setlocal noexpandtab tabstop=8 shiftwidth=8
     autocmd BufRead,BufNewFile Makefile,makefile setlocal noexpandtab tabstop=8 shiftwidth=8
-    
+
     " Docs and logs
     autocmd FileType markdown,text,log setlocal expandtab tabstop=2 softtabstop=2 shiftwidth=2
 augroup END
@@ -66,6 +66,7 @@ set smartcase                      " Override 'ignorecase' if search contains up
 " File handling
 set confirm                        " Prompt to save changes
 set autoread                       " Automatically read file changes from outside
+autocmd FocusGained * :checktime   " Catch changes that happened while in background
 set hidden                         " Allow buffer switching without saving
 set nobackup                       " Don't create backup files
 set noswapfile                     " Don't create swap files
@@ -118,6 +119,39 @@ nnoremap <leader>o <C-w>o          " Close all other windows
 nnoremap <leader>bn :bnext<CR>     " Next buffer
 nnoremap <leader>bp :bprev<CR>     " Previous buffer
 nnoremap <leader>bd :bdelete<CR>   " Delete buffer
+
+" Session management
+set sessionoptions=blank,buffers,curdir,folds,help,tabpages,winsize
+nnoremap <leader>ss :mksession! ~/.vim/session.vim<CR>     " Save session
+nnoremap <leader>rs :source ~/.vim/session.vim<CR>         " Restore session
+
+" Enhanced auto-completion
+set complete+=kspell
+set completeopt=menuone,longest
+inoremap <expr> <Tab> pumvisible() ? "\<C-n>" : "\<Tab>"
+inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
+
+" Enhanced jump navigation
+nnoremap <leader>j :jumps<CR>
+nnoremap <C-o> <C-o>zz            " Jump back and center
+nnoremap <C-i> <C-i>zz            " Jump forward and center
+
+" Track and navigate recently used files
+nnoremap <leader>fr :browse oldfiles<CR>
+
+" File explorer improvements
+let g:netrw_banner = 0            " Hide banner
+let g:netrw_liststyle = 3         " Tree view
+let g:netrw_browse_split = 4      " Open in previous window
+let g:netrw_winsize = 25          " Width of explorer
+nnoremap <leader>fe :Lexplore<CR> " Toggle file explorer
+
+" Tab navigation
+nnoremap <leader>tn :tabnew<CR>    " Create new tab
+nnoremap <leader>tc :tabclose<CR>  " Close current tab
+nnoremap <leader>to :tabonly<CR>   " Close all other tabs
+nnoremap <C-h> :tabprevious<CR>    " Previous tab with Ctrl+h
+nnoremap <C-l> :tabnext<CR>        " Next tab with Ctrl+l
 
 " Folding
 set foldmethod=indent              " Fold based on indentation

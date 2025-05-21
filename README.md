@@ -4,9 +4,8 @@ Tool based on pi-gen to generate WLAN Pi OS images for bookworm.
 
 ## Docs
 
-- [VERSIONING.md](docs/VERSIONING.md)
-- [PRDs.md](docs/PRDs.md)
-- [ORIGINAL PI-GEN.md](PI-GEN.md)
+- [DOCS](docs/PRDs.md)
+- [README](PI-GEN.md)
 
 ## Lite image update tools
 
