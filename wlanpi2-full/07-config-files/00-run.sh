@@ -104,6 +104,25 @@ install -m 644 files/.bash_aliases "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.bash_
 install -m 644 files/.vimrc "${ROOTFS_DIR}/root/.vimrc"
 install -m 644 files/.tmux.conf "${ROOTFS_DIR}/root/.tmux.conf"
 
+# Set term for ghostty
+# Add fzf key bindings and completion to .bashrc
+cat >> "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.bashrc" << 'EOF'
+
+# Enable fzf key bindings and completion if available
+if [ -f /usr/share/doc/fzf/examples/key-bindings.bash ]; then
+        source /usr/share/doc/fzf/examples/key-bindings.bash
+fi
+
+if [ -f /usr/share/doc/fzf/examples/completion.bash ]; then
+        source /usr/share/doc/fzf/examples/completion.bash
+fi
+
+if [[ "$TERM" == "xterm-ghostty" ]]; then
+    export TERM=xterm-256color
+	PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w \$\[\033[00m\] '
+fi
+EOF
+
 # Stage tmux and vim config for both user and root for consistent experience
 on_chroot << EOF
 # Create necessary directories for both users
