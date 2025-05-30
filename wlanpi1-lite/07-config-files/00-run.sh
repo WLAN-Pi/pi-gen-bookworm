@@ -91,9 +91,6 @@ rm -f "${ROOTFS_DIR}/tmp/update-os-release.sh"
 # Add our custom sudoers file
 copy_overlay /etc/sudoers.d/wlanpidump -o root -g root -m 440
 
-# Add a default wpa_supplicant configuration with the control interface disabled
-copy_overlay /etc/wpa_supplicant/wpa_supplicant.conf -o root -g root -m 600
-
 # Copy config file: avahi-daemon
 copy_overlay /etc/avahi/avahi-daemon.conf -o root -g root -m 644
 
