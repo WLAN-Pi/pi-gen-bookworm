@@ -100,6 +100,7 @@ echo "Temp directory: $TEMP_DIR"
 ORIGINAL_SIZE=$(stat -c%s "$INPUT_IMAGE")
 echo "Original image size: $(( ORIGINAL_SIZE / 1024 / 1024 )) MB"
 
+CONFIGFS_SIZE=$((16 * 1024 * 1024))         # 16 MB
 BOOT1_SIZE=$((256 * 1024 * 1024))           # 256 MB
 BOOT2_SIZE="${BOOT1_SIZE}"
 ROOT1_SIZE=$((ROOT_SIZE_MB * 1024 * 1024))  # MB to bytes
@@ -109,6 +110,7 @@ BUFFER_SIZE=$((32 * 1024 * 1024))           # 32 MB
 ALIGN=$((1024 * 1024))
 
 NEW_SIZE=$ALIGN
+NEW_SIZE=$((NEW_SIZE + CONFIGFS_SIZE))
 NEW_SIZE=$((NEW_SIZE + BOOT1_SIZE))
 NEW_SIZE=$((NEW_SIZE + BOOT2_SIZE))
 NEW_SIZE=$((NEW_SIZE + ROOT1_SIZE))
@@ -180,7 +182,13 @@ echo "Calculating partition positions ..."
 SECTOR_SIZE=512 # Define in sectors (512 bytes each)
 SECTORS_PER_MB=$((1024*1024 / SECTOR_SIZE))  # 2048 sectors per MB
 
-p1_start=$((SECTORS_PER_MB * 1))  # Start at 1MB
+config_start=$((SECTORS_PER_MB * 1))  # Start at 1MB
+config_size=$((CONFIGFS_SIZE / SECTOR_SIZE))
+config_end=$((config_start + config_size - 1))
+
+
+p1_start=$((config_end + 1))
+p1_start=$(((p1_start + SECTORS_PER_MB - 1) / SECTORS_PER_MB * SECTORS_PER_MB))  # Align to MB
 p1_size=$((BOOT1_SIZE / SECTOR_SIZE))
 p1_end=$((p1_start + p1_size - 1))
 
@@ -237,6 +245,7 @@ fi
 
 echo "Running parted ..."
 parted --script "$OUTPUT_IMAGE" mklabel msdos
+parted --script "$OUTPUT_IMAGE" unit s mkpart primary fat16 ${config_start} ${config_end} # Config FS
 parted --script "$OUTPUT_IMAGE" unit s mkpart primary fat32 ${p1_start} ${p1_end} # Primary boot A
 parted --script "$OUTPUT_IMAGE" unit s mkpart primary fat32 ${p2_start} ${p2_end} # Primary boot B
 parted --script "$OUTPUT_IMAGE" unit s mkpart extended ${p3_start} ${LAST_SECTOR}
@@ -269,23 +278,24 @@ fi
 
 echo "Giving the system three seconds to stabilize ..."
 sleep 3
-
-BOOT1_DEV="${NEW_LOOP_DEV}p1"
-BOOT2_DEV="${NEW_LOOP_DEV}p2"
-# p3 is the extended container; skipping.
+CONFIG_DEV="${NEW_LOOP_DEV}p1"
+BOOT1_DEV="${NEW_LOOP_DEV}p2"
+BOOT2_DEV="${NEW_LOOP_DEV}p3"
+# p4 is the extended container; skipping.
 ROOT1_DEV="${NEW_LOOP_DEV}p5"
 ROOT2_DEV="${NEW_LOOP_DEV}p6"
 PERSISTENT_DEV="${NEW_LOOP_DEV}p7" # /home is last partition so we can resize it to fill fs
 
 echo "Formatting partitions ..."
-if [ "$BOOT1_SIZE" -lt 134742016 ]; then
+CONFIG_SIZE=$(blockdev --getsize64 "$CONFIG_DEV")
+if [ "$CONFIG_DEV" -lt 134742016 ]; then
     FAT_SIZE=16
     echo "Fat size set to 16 ..."
 else
     FAT_SIZE=32
     echo "Fat size set to 32 ..."
 fi
-
+mkfs.vfat -F "$FAT_SIZE" -n CONFIGFS "${CONFIG_DEV}"
 mkfs.vfat -F "$FAT_SIZE" -n BOOT1FS "${BOOT1_DEV}"
 mkfs.vfat -F "$FAT_SIZE" -n BOOT2FS "${BOOT2_DEV}"
 mkfs.ext4 -F -L ROOT1FS "${ROOT1_DEV}" -O ^huge_file
@@ -306,29 +316,6 @@ for file in bootcode.bin start.elf fixup.dat; do
     fi
 done
 
-echo "Creating failback config.txt on boot B ..."
-cat > "$BOOT2_MNT/config.txt" << EOF
-# Minimal config.txt for failback mechanism to boot A
-# Boot B partition is not fully provisioned yet
-[tryboot]
-boot_partition=1
-EOF
-
-echo "Creating failback tryboot.txt on boot B ..."
-cat > "$BOOT2_MNT/tryboot.txt" << EOF
-# FAILBACK CONFIGURATION
-# Immediately points back to A partitions if tryboot is used
-# Safety mechanism for when partition B is not fully provisioned
-kernel=wlanpi-kernel8.img
-os_prefix=1:/
-EOF
-
-sync
-umount "$BOOT2_MNT"
-rmdir "$BOOT2_MNT"
-
-echo "Minimal failback setup on Boot B partition completed ..."
-
 echo "Getting partition UUIDs ..."
 BOOT1_PARTUUID=$(blkid -s PARTUUID -o value "${BOOT1_DEV}")
 BOOT2_PARTUUID=$(blkid -s PARTUUID -o value "${BOOT2_DEV}")
@@ -345,6 +332,28 @@ echo "Re-mounting original image to copy content ..."
 ORIG_LOOP_DEV=$(losetup --show -P -f "$INPUT_IMAGE")
 mount "${ORIG_LOOP_DEV}"p1 "$ORIGINAL_BOOT"
 mount "${ORIG_LOOP_DEV}"p2 "$ORIGINAL_ROOT"
+
+echo "Setting up A/B boot configuration on config partition ..."
+CONFIG_MNT="$TEMP_DIR/config_mnt"
+mkdir -p "$CONFIG_MNT"
+mount -v "${CONFIG_DEV}" "${CONFIG_MNT}" -t vfat
+
+cat > "$CONFIG_MNT/autoboot.txt" << EOF
+boot_partition=2
+tryboot_a_b=1
+EOF
+
+cat > "$CONFIG_MNT/tryboot.txt" << EOF
+# This configuration will be used when booting in tryboot mode
+# Point to the B partitions
+kernel=wlanpi-kernel8.img
+os_prefix=3:/
+cmdline=cmdline-b.txt
+EOF
+
+sync
+umount "$CONFIG_MNT"
+rmdir "$CONFIG_MNT"
 
 echo "Mounting new partitions ..."
 mount -v "${ROOT1_DEV}" "${NEW_ROOTFS}" -t ext4
@@ -436,20 +445,6 @@ if [ ! -d "$NEW_ROOTFS/boot/overlays" ] && [ -d "$ORIGINAL_BOOT/overlays" ]; the
     cp -a "$ORIGINAL_BOOT/overlays/"* "$NEW_ROOTFS/boot/overlays/"
     echo "Ensured overlays directory exists with proper content ..."
 fi
-
-echo "Setting up A/B boot configuration ..."
-cat > "$NEW_ROOTFS/boot/autoboot.txt" << EOF
-boot_partition=1
-tryboot_a_b=1
-EOF
-
-cat > "$NEW_ROOTFS/boot/tryboot.txt" << EOF
-# This configuration will be used when booting in tryboot mode
-# Point to the B partitions
-kernel=wlanpi-kernel8.img
-os_prefix=2:/
-cmdline=cmdline-b.txt
-EOF
 
 echo "Updating fstab for new partition layout ..."
 cat > "$NEW_ROOTFS/etc/fstab" << EOF
