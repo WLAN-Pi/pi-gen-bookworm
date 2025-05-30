@@ -584,14 +584,15 @@ echo
 echo "Verify integrity with: sha256sum --check ""$OUTPUT_IMAGE"".sha256"
 echo
 echo "The image has the following partition structure:"
-echo "1: BOOT1FS   - Primary boot partition (A)"
-echo "2: BOOT2FS  - Primary boot partition (B)"
-echo "3: Extended partition container for additional logical partitions"
+echo "1: CONFIGFS  - Configuration partition for A/B boot management"
+echo "2: BOOT1FS   - Primary boot partition (A)"
+echo "3: BOOT2FS   - Primary boot partition (B)"
+echo "4: Extended partition container for additional logical partitions"
 echo "  - 5: ROOT1FS   - Root partition (A)"
 echo "  - 6: ROOT2FS  - Root partition (B)"
 echo "  - 7: HOME     - Persistent partition (automatically expanded on first boot)"
 echo
-echo "Partition structure is optimized for CM4s with 8 GB of disk"
+echo "Partition structure is by default optimized for CM4s with 8 GB of disk"
 echo "====================================="
 echo
 echo "ab-partition finished ..."
