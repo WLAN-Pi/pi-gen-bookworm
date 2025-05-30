@@ -469,14 +469,14 @@ echo "Starting home partition expansion ..."
 
 DEVICE=$(findmnt -n -o SOURCE /home | sed 's/p[0-9]\+$//')
 HOME_PART=$(findmnt -n -o SOURCE /home)
-EXTENDED_PART="${DEVICE}p3"
+EXTENDED_PART="${DEVICE}p4"
 TOTAL_SECTORS=$(fdisk -l $DEVICE | grep "sectors$" | awk '{print $7}')
 
 echo "Unmounting home partition ..."
 umount /home
 
 echo "Resizing extended partition to fill disk ..."
-parted -s $DEVICE unit s resizepart 3 $((TOTAL_SECTORS - 2048))
+parted -s $DEVICE unit s resizepart 4 $((TOTAL_SECTORS - 2048))
 
 echo "Updating partition table ..."
 partprobe $DEVICE
