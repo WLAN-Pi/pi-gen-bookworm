@@ -247,9 +247,9 @@ echo "Running parted ..."
 parted --script "$OUTPUT_IMAGE" mklabel msdos
 parted --script "$OUTPUT_IMAGE" unit s mkpart primary fat16 ${config_start} ${config_end} # Config FS
 parted --script "$OUTPUT_IMAGE" unit s mkpart primary fat32 ${p1_start} ${p1_end} # Primary boot A
+parted --script "$OUTPUT_IMAGE" set 2 boot on
 parted --script "$OUTPUT_IMAGE" unit s mkpart primary fat32 ${p2_start} ${p2_end} # Primary boot B
 parted --script "$OUTPUT_IMAGE" unit s mkpart extended ${p3_start} ${LAST_SECTOR}
-parted --script "$OUTPUT_IMAGE" set 1 boot on
 
 parted --script "$OUTPUT_IMAGE" unit s mkpart logical ext4 ${lp1_start} ${lp1_end} # Root A
 parted --script "$OUTPUT_IMAGE" unit s mkpart logical ext4 ${lp2_start} ${lp2_end} # Root B
@@ -288,7 +288,7 @@ PERSISTENT_DEV="${NEW_LOOP_DEV}p7" # /home is last partition so we can resize it
 
 echo "Formatting partitions ..."
 CONFIG_SIZE=$(blockdev --getsize64 "$CONFIG_DEV")
-if [ "$CONFIG_DEV" -lt 134742016 ]; then
+if [ "$CONFIG_SIZE" -lt 134742016 ]; then
     FAT_SIZE=16
     echo "Fat size set to 16 ..."
 else
