@@ -11,9 +11,19 @@ Tool based on pi-gen to generate WLAN Pi OS images for bookworm.
 
 - `boot-info`: diagnostic information about current boot/root partitions
 - `update-alternate-partition`: updates the inactive partition
-- `tryboot-alternative`: ensures tryboot is setup properly 
+- `tryboot-alternate`: ensures tryboot is setup properly 
 - `commit-current-partition`: makes autoboot.txt point towards booted partition confirming verification
 
 Manual trigger tryboot:
 
-- `sudo reboot 'N tryboot'`: tests booting to the updated partition safely. Use 1 or 2.
+- `sudo reboot '0 tryboot'`: tests booting to the updated partition safely using CONFIGFS configuration.
+
+## Partition structure
+
+The A/B partition layout uses:
+- `p1`: CONFIGFS partition containing autoboot.txt and tryboot.txt
+- `p2/p5`: Partition set A (boot/root)
+- `p3/p6`: Partition set B (boot/root)
+- `p7`: Home partition (shared)
+
+Boot configuration is controlled by autoboot.txt in the CONFIGFS partition (p1), which determines which partition set boots by default.
