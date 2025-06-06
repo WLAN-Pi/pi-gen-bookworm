@@ -85,12 +85,12 @@ echo
 echo_debug "IMPORTANT: This performs a one-time boot test to partition set $TARGET_SET"
 echo_debug "If the test boot fails, the system will automatically revert to partition set $ACTIVE_SET on next boot"
 echo
-echo -e "To test, run:\n\033[1msudo reboot '0 tryboot'\033[0m"
+echo -e "To test, run:\n\033[1msudo reboot '${TARGET_BOOT_NUM} tryboot'\033[0m"
 echo
 echo_debug "Boot process explanation:"
-echo " - reboot '0 tryboot' → bootloader reads CONFIGFS (p1)"
-echo " - finds tryboot.txt → reads os_prefix=${TARGET_BOOT_NUM}:/"
-echo " - boots from partition ${TARGET_BOOT_NUM} (partition set ${TARGET_SET})"
+echo " - reboot '${TARGET_BOOT_NUM} tryboot' → bootloader boots from partition ${TARGET_BOOT_NUM}"
+echo " - uses tryboot.txt configuration from CONFIGFS (p1)" 
+echo " - boots partition set ${TARGET_SET}"
 echo 
 echo -e "After verifying the alternate partition works correctly, from the alternate partition apply with:\n\033[1msudo commit-current-partition\033[0m"
 echo

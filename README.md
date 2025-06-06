@@ -16,7 +16,8 @@ Tool based on pi-gen to generate WLAN Pi OS images for bookworm.
 
 Manual trigger tryboot:
 
-- `sudo reboot '0 tryboot'`: tests booting to the updated partition safely using CONFIGFS configuration.
+- `sudo reboot '2 tryboot'`: tests booting to partition set A (boot p2, root p5)
+- `sudo reboot '3 tryboot'`: tests booting to partition set B (boot p3, root p6)
 
 ## Partition structure
 

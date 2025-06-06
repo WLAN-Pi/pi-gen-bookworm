@@ -359,7 +359,8 @@ TARGET_SET=$INACTIVE_SET
 SOURCE_SET=$ACTIVE_SET
 
 echo "1. Test the updated $TARGET_SET partition set:"
-echo "   sudo reboot '0 tryboot'"
+echo "   sudo tryboot-alternate"
+echo "   sudo reboot '${TARGET_BOOT_NUM} tryboot'"
 echo
 echo "2. After booting to $TARGET_SET, verify system functionality:"
 echo "   sudo boot-info"
