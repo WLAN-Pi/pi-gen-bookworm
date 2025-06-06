@@ -6,7 +6,7 @@
 #
 # Requires: gunzip dd blkid mount sed
 #
-# Version: v0.5
+# Version: v0.6
 # Author: Josh Schmelzle
 # License: BSD-3
 
@@ -74,27 +74,27 @@ CURRENT_ROOT=$(mount | grep ' on / ' | awk '{print $1}')
 echo_debug "Current root: $CURRENT_ROOT"
 
 if [[ $CURRENT_ROOT == *"mmcblk0p5"* ]]; then
-    echo_debug "Currently booted from A partition set (boot p1, root p5)"
+    echo_debug "Currently booted from A partition set (boot p2, root p5)"
     ACTIVE_SET="A"
-    INACTIVE_BOOT="/dev/mmcblk0p2"
+    INACTIVE_BOOT="/dev/mmcblk0p3"
     INACTIVE_ROOT="/dev/mmcblk0p6"
-    ACTIVE_BOOT="/dev/mmcblk0p1"
+    ACTIVE_BOOT="/dev/mmcblk0p2"
     ACTIVE_ROOT="/dev/mmcblk0p5"
     HOME_PART="/dev/mmcblk0p7"
-    BOOT_PARTITION=1
-    INACTIVE_BOOT_NUM=2
-    ACTIVE_BOOT_NUM=1
+    BOOT_PARTITION=2
+    INACTIVE_BOOT_NUM=3
+    ACTIVE_BOOT_NUM=2
 elif [[ $CURRENT_ROOT == *"mmcblk0p6"* ]]; then
-    echo_debug "Currently booted from B partition set (boot p2, root p6)"
+    echo_debug "Currently booted from B partition set (boot p3, root p6)"
     ACTIVE_SET="B"
-    INACTIVE_BOOT="/dev/mmcblk0p1"
+    INACTIVE_BOOT="/dev/mmcblk0p2"
     INACTIVE_ROOT="/dev/mmcblk0p5"
-    ACTIVE_BOOT="/dev/mmcblk0p2"
+    ACTIVE_BOOT="/dev/mmcblk0p3"
     ACTIVE_ROOT="/dev/mmcblk0p6"
     HOME_PART="/dev/mmcblk0p7"
-    BOOT_PARTITION=2
-    INACTIVE_BOOT_NUM=1
-    ACTIVE_BOOT_NUM=2
+    BOOT_PARTITION=3
+    INACTIVE_BOOT_NUM=2
+    ACTIVE_BOOT_NUM=3
 else
     echo_error "Unable to determine current boot partition ...\nCurrent root: $CURRENT_ROOT"
 fi
@@ -232,8 +232,8 @@ if [ $ROOT_IMAGE_SIZE_BYTES -gt $ROOT_TARGET_SIZE ]; then
 fi
 
 echo_debug "Verifying target partitions ..."
-if [[ "$INACTIVE_BOOT" != "/dev/mmcblk0p1" && "$INACTIVE_BOOT" != "/dev/mmcblk0p2" ]]; then
-    echo_error "Invalid boot target: $INACTIVE_BOOT - should be either p1 or p2"
+if [[ "$INACTIVE_BOOT" != "/dev/mmcblk0p2" && "$INACTIVE_BOOT" != "/dev/mmcblk0p3" ]]; then
+    echo_error "Invalid boot target: $INACTIVE_BOOT - should be either p2 or p3"
 fi
 
 if [[ "$INACTIVE_ROOT" != "/dev/mmcblk0p5" && "$INACTIVE_ROOT" != "/dev/mmcblk0p6" ]]; then
@@ -318,14 +318,23 @@ cat "$TEMP_DIR/mnt_boot/cmdline-b.txt" | sed 's/^/    /'
 echo_debug "--------------------------------"
 echo
 
-echo_debug "Creating tryboot.txt ..."
-cat > "$TEMP_DIR/mnt_boot/tryboot.txt" << EOF
+echo_debug "Creating/updating tryboot.txt in CONFIGFS ..."
+CONFIGFS_DEV="/dev/mmcblk0p1"
+CONFIGFS_MNT=$(mktemp -d -p "$TEMP_DIR")
+
+if mount "$CONFIGFS_DEV" "$CONFIGFS_MNT"; then
+    cat > "$CONFIGFS_MNT/tryboot.txt" << EOF
 # This configuration will be used when booting in tryboot mode
 # Point to the alternate partition
 kernel=wlanpi-kernel8.img
 os_prefix=$ACTIVE_BOOT_NUM:/
 cmdline=cmdline-b.txt
 EOF
+    echo_debug "Updated tryboot.txt in CONFIGFS"
+    umount "$CONFIGFS_MNT"
+else
+    echo_warning "Failed to mount CONFIGFS partition to update tryboot.txt"
+fi
 
 echo_debug "Updating fstab in inactive root partition ..."
 cat > "$TEMP_DIR/mnt_root/etc/fstab" << EOF
@@ -350,7 +359,8 @@ TARGET_SET=$INACTIVE_SET
 SOURCE_SET=$ACTIVE_SET
 
 echo "1. Test the updated $TARGET_SET partition set:"
-echo "   sudo reboot '$TARGET_BOOT_NUM tryboot'"
+echo "   sudo tryboot-alternate"
+echo "   sudo reboot '${TARGET_BOOT_NUM} tryboot'"
 echo
 echo "2. After booting to $TARGET_SET, verify system functionality:"
 echo "   sudo boot-info"
@@ -358,12 +368,12 @@ echo
 echo "3. If $TARGET_SET is working properly and you want to make it permanent:"
 echo "   sudo commit-current-partition"
 echo
-echo "   This updates partition 1's autoboot.txt to boot partition $TARGET_BOOT_NUM"
+echo "   This updates CONFIGFS autoboot.txt to boot partition $TARGET_BOOT_NUM"
 echo "   on next reboot and after any power loss."
 echo
 echo "4. To return to partition set $SOURCE_SET without making changes permanent:"
 echo "   sudo reboot"
 echo
-echo "IMPORTANT: The autoboot.txt file on partition 1 ALWAYS controls which"
+echo "IMPORTANT: The autoboot.txt file in CONFIGFS (p1) ALWAYS controls which"
 echo "partition boots after a power loss, regardless of your current partition."
 echo

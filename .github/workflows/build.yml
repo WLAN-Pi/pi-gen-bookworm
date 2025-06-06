@@ -863,21 +863,34 @@ jobs:
             exit 1
           fi
           
-          sudo mkdir -p /mnt/test_boot
-          sudo mount "${LOOP_DEV}p1" /mnt/test_boot
-          
-          BOOT_FILES=("cmdline.txt" "config.txt" "autoboot.txt" "tryboot.txt")
-          for file in "${BOOT_FILES[@]}"; do
-            if [ ! -f "/mnt/test_boot/$file" ]; then
-              echo "Error: missing boot file: $file"
-              sudo umount /mnt/test_boot
+          sudo mkdir -p /mnt/test_boot1 /mnt/test_boot2
+          sudo mount "${LOOP_DEV}p2" /mnt/test_boot2
+          sudo mount "${LOOP_DEV}p1" /mnt/test_boot1
+          CONFIG_FILES=("autoboot.txt" "tryboot.txt")
+          for file in "${CONFIG_FILES[@]}"; do
+            if [ ! -f "/mnt/test_boot1/$file" ]; then
+              echo "Error: missing config file on CONFIGFS partition 1: $file"
+              sudo umount /mnt/test_boot1
+              sudo umount /mnt/test_boot2
               sudo losetup -d "$LOOP_DEV"
               rm "$TEMP_IMG"
               exit 1
             fi
           done
-          
-          sudo umount /mnt/test_boot
+          BOOT2_FILES=("cmdline.txt" "config.txt")
+          for file in "${BOOT2_FILES[@]}"; do
+            if [ ! -f "/mnt/test_boot2/$file" ]; then
+              echo "Error: missing boot file on BOOT1FS partition 2: $file"
+              sudo umount /mnt/test_boot1
+              sudo umount /mnt/test_boot2
+              sudo losetup -d "$LOOP_DEV"
+              rm "$TEMP_IMG"
+              exit 1
+            fi
+          done
+          sudo umount /mnt/test_boot1
+          sudo umount /mnt/test_boot2
+
           sudo losetup -d "$LOOP_DEV"
           rm "$TEMP_IMG"
           
