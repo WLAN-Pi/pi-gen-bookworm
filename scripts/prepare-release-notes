@@ -356,7 +356,7 @@ compare_info_files() {
             echo "#### New Packages"
             for pkg in $NEW_PACKAGES; do
                 VERSION=$(grep "^$pkg=" "$CURR_TEMP" | cut -d'=' -f2)
-                echo "* $pkg=$VERSION"
+                echo "* $pkg=\`$VERSION\`"
             done
             echo
         fi
@@ -365,7 +365,13 @@ compare_info_files() {
             CHANGES_FOUND=1
             echo "#### Updated Packages"
             echo "$UPGRADED_PACKAGES" | while read -r line; do
-                [ -n "$line" ] && echo "* $line"
+                if [ -n "$line" ]; then
+                    pkg_name=$(echo "$line" | cut -d':' -f1)
+                    versions=$(echo "$line" | cut -d':' -f2- | sed 's/^ *//')
+                    old_ver=$(echo "$versions" | cut -d'→' -f1 | sed 's/ *$//')
+                    new_ver=$(echo "$versions" | cut -d'→' -f2 | sed 's/^ *//')
+                    echo "* $pkg_name: \`$old_ver\` → \`$new_ver\`"
+                fi
             done
             echo
         fi
@@ -374,7 +380,13 @@ compare_info_files() {
             CHANGES_FOUND=1
             echo "#### Downgraded Packages"
             echo "$DOWNGRADED_PACKAGES" | while read -r line; do
-                [ -n "$line" ] && echo "* $line"
+                if [ -n "$line" ]; then
+                    pkg_name=$(echo "$line" | cut -d':' -f1)
+                    versions=$(echo "$line" | cut -d':' -f2- | sed 's/^ *//')
+                    old_ver=$(echo "$versions" | cut -d'→' -f1 | sed 's/ *$//')
+                    new_ver=$(echo "$versions" | cut -d'→' -f2 | sed 's/^ *//')
+                    echo "* $pkg_name: \`$old_ver\` → \`$new_ver\`"
+                fi
             done
             echo
         fi
@@ -384,7 +396,7 @@ compare_info_files() {
             echo "#### Removed Packages"
             for pkg in $REMOVED_PACKAGES; do
                 VERSION=$(grep "^$pkg=" "$PREV_TEMP" | cut -d'=' -f2)
-                echo "* $pkg=$VERSION"
+                echo "* $pkg=\`$VERSION\`"
             done
             echo
         fi
