@@ -156,82 +156,139 @@ compare_versions() {
         return
     fi
 
-    IFS='.+-~' read -ra V1 <<< "$v1"
-    IFS='.+-~' read -ra V2 <<< "$v2"
+    local epoch1=0 epoch2=0
+    if [[ "$v1" == *:* ]]; then
+        epoch1="${v1%%:*}"
+        v1="${v1#*:}"
+    fi
+    if [[ "$v2" == *:* ]]; then
+        epoch2="${v2%%:*}"
+        v2="${v2#*:}"
+    fi
 
-    local max_len=$(( ${#V1[@]} > ${#V2[@]} ? ${#V1[@]} : ${#V2[@]} ))
+    if [ "$epoch1" -gt "$epoch2" ]; then
+        echo "1"
+        return
+    elif [ "$epoch1" -lt "$epoch2" ]; then
+        echo "2"
+        return
+    fi
+
+    local upstream1="${v1%%-*}" revision1=""
+    local upstream2="${v2%%-*}" revision2=""
+    
+    if [[ "$v1" == *-* ]]; then
+        revision1="${v1##*-}"
+    fi
+    if [[ "$v2" == *-* ]]; then
+        revision2="${v2##*-}"
+    fi
+
+    local result=$(compare_version_part "$upstream1" "$upstream2")
+    if [ "$result" != "0" ]; then
+        echo "$result"
+        return
+    fi
+
+    compare_version_part "$revision1" "$revision2"
+}
+
+compare_version_part() {
+    local v1="$1" v2="$2"
+    
+    [ -z "$v1" ] && v1="0"
+    [ -z "$v2" ] && v2="0"
+    
+    if [ "$v1" = "$v2" ]; then
+        echo "0"
+        return
+    fi
+
+    IFS='.' read -ra parts1 <<< "$v1"
+    IFS='.' read -ra parts2 <<< "$v2"
+
+    local max_len=$(( ${#parts1[@]} > ${#parts2[@]} ? ${#parts1[@]} : ${#parts2[@]} ))
 
     for (( i=0; i<max_len; i++ )); do
-        if [ -z "${V1[$i]}" ]; then
-            local all_zeros=true
-            for (( j=i; j<${#V2[@]}; j++ )); do
-                if [ "${V2[$j]}" != "0" ]; then
-                    all_zeros=false
-                    break
-                fi
-            done
+        local p1="${parts1[$i]:-0}"
+        local p2="${parts2[$i]:-0}"
 
-            if $all_zeros; then
-                echo "0"
-            else
-                echo "2"
-            fi
-            return
-        fi
-
-        if [ -z "${V2[$i]}" ]; then
-            local all_zeros=true
-            for (( j=i; j<${#V1[@]}; j++ )); do
-                if [ "${V1[$j]}" != "0" ]; then
-                    all_zeros=false
-                    break
-                fi
-            done
-
-            if $all_zeros; then
-                echo "0"
-            else
-                echo "1"
-            fi
-            return
-        fi
-
-        if [[ "${V1[$i]}" =~ ^[0-9]+$ ]] && [[ "${V2[$i]}" =~ ^[0-9]+$ ]]; then
-            if [ "${V1[$i]}" -gt "${V2[$i]}" ]; then
-                echo "1" 
-                return
-            elif [ "${V1[$i]}" -lt "${V2[$i]}" ]; then
-                echo "2"
+        if [[ "$p1" == *~* ]] || [[ "$p2" == *~* ]]; then
+            local result=$(compare_with_tilde "$p1" "$p2")
+            if [ "$result" != "0" ]; then
+                echo "$result"
                 return
             fi
         else
-            # String comparison (for alpha parts like 'a', 'b', 'rc', etc.)
-            # Handle special case: '~' sorts earlier than everything else
-            local c1="${V1[$i]}"
-            local c2="${V2[$i]}"
-
-            [ -z "$c1" ] && c1="0"
-            [ -z "$c2" ] && c2="0"
-
-            if [[ "$c1" == \~* ]] && [[ "$c2" != \~* ]]; then
-                echo "2"  # v1 is less than v2 because of ~
+            local result=$(compare_single_part "$p1" "$p2")
+            if [ "$result" != "0" ]; then
+                echo "$result"
                 return
-            elif [[ "$c1" != \~* ]] && [[ "$c2" == \~* ]]; then
-                echo "1"  # v1 is greater than v2 because of ~
-                return
-            elif [[ "$c1" != "$c2" ]]; then
-                if [[ "$c1" -gt "$c2" ]]; then
-                    echo "1"
-                    return
-                else
-                    echo "2"
-                    return
-                fi
             fi
         fi
     done
 
     echo "0"
+}
+
+compare_with_tilde() {
+    local p1="$1" p2="$2"
+    
+    local pre1="${p1%%~*}" post1="" pre2="${p2%%~*}" post2=""
+    
+    if [[ "$p1" == *~* ]]; then
+        post1="${p1#*~}"
+    fi
+    if [[ "$p2" == *~* ]]; then
+        post2="${p2#*~}"
+    fi
+
+    local result=$(compare_single_part "$pre1" "$pre2")
+    if [ "$result" != "0" ]; then
+        echo "$result"
+        return
+    fi
+
+    if [[ "$p1" == *~* ]] && [[ "$p2" != *~* ]]; then
+        echo "2"
+    elif [[ "$p1" != *~* ]] && [[ "$p2" == *~* ]]; then
+        echo "1"
+    elif [[ "$p1" == *~* ]] && [[ "$p2" == *~* ]]; then
+        compare_single_part "$post1" "$post2"
+    else
+        echo "0"
+    fi
+}
+
+compare_single_part() {
+    local p1="$1" p2="$2"
+    
+    local num1="" alpha1="" num2="" alpha2=""
+    
+    if [[ "$p1" =~ ^([0-9]*)(.*)$ ]]; then
+        num1="${BASH_REMATCH[1]:-0}"
+        alpha1="${BASH_REMATCH[2]}"
+    fi
+    if [[ "$p2" =~ ^([0-9]*)(.*)$ ]]; then
+        num2="${BASH_REMATCH[1]:-0}"
+        alpha2="${BASH_REMATCH[2]}"
+    fi
+
+    if [ "$num1" -gt "$num2" ]; then
+        echo "1"
+        return
+    elif [ "$num1" -lt "$num2" ]; then
+        echo "2"
+        return
+    fi
+
+    if [ "$alpha1" \> "$alpha2" ]; then
+        echo "1"
+    elif [ "$alpha1" \< "$alpha2" ]; then
+        echo "2"
+    else
+        echo "0"
+    fi
 }
 
 compare_info_files() {
