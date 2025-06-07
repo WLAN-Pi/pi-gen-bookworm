@@ -91,7 +91,7 @@ echo_status "Partition commit complete"
 echo_debug "Summary:"
 echo " - Committed partition set: $CURRENT_SET"
 echo " - Active boot partition: $CURRENT_BOOT_NUM" 
-echo " - Alternative boot partition: $ALT_BOOT_NUM"
+echo " - Alternate boot partition: $ALT_BOOT_NUM"
 echo " - CONFIGFS autoboot.txt now points to partition $CURRENT_BOOT_NUM"
 echo_debug "This configuration will persist across all future reboots and power cycles"
 echo
