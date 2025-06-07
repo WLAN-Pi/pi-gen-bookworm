@@ -20,7 +20,7 @@
 #   # for promote mode
 #   ./scripts/prepare-release-notes --mode promote --version 2025.04.19 --full-version 2025.04.19-theanine --codename theanine
 #
-# Version: v0.1
+# Version: v0.2
 # Author: Josh Schmelzle
 # License: BSD-3
 
@@ -364,7 +364,7 @@ compare_info_files() {
         if [ -n "$UPGRADED_PACKAGES" ]; then
             CHANGES_FOUND=1
             echo "#### Updated Packages"
-            echo "$UPGRADED_PACKAGES" | while read -r line; do
+            while IFS= read -r line; do
                 if [ -n "$line" ]; then
                     pkg_name=$(echo "$line" | cut -d':' -f1)
                     versions=$(echo "$line" | cut -d':' -f2- | sed 's/^ *//')
@@ -372,14 +372,14 @@ compare_info_files() {
                     new_ver=$(echo "$versions" | cut -d'→' -f2 | sed 's/^ *//')
                     echo "* $pkg_name: \`$old_ver\` → \`$new_ver\`"
                 fi
-            done
+            done <<< "$UPGRADED_PACKAGES"
             echo
         fi
         
         if [ -n "$DOWNGRADED_PACKAGES" ]; then
             CHANGES_FOUND=1
             echo "#### Downgraded Packages"
-            echo "$DOWNGRADED_PACKAGES" | while read -r line; do
+            while IFS= read -r line; do
                 if [ -n "$line" ]; then
                     pkg_name=$(echo "$line" | cut -d':' -f1)
                     versions=$(echo "$line" | cut -d':' -f2- | sed 's/^ *//')
@@ -387,7 +387,7 @@ compare_info_files() {
                     new_ver=$(echo "$versions" | cut -d'→' -f2 | sed 's/^ *//')
                     echo "* $pkg_name: \`$old_ver\` → \`$new_ver\`"
                 fi
-            done
+            done <<< "$DOWNGRADED_PACKAGES"
             echo
         fi
 
