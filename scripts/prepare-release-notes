@@ -20,7 +20,7 @@
 #   # for promote mode
 #   ./scripts/prepare-release-notes --mode promote --version 2025.04.19 --full-version 2025.04.19-theanine --codename theanine
 #
-# Version: v0.2
+# Version: v0.3
 # Author: Josh Schmelzle
 # License: BSD-3
 
@@ -151,140 +151,9 @@ compare_versions() {
     local v1="$1"
     local v2="$2"
 
-    if [ "$v1" = "$v2" ]; then
-        echo "0"
-        return
-    fi
-
-    local epoch1=0 epoch2=0
-    if [[ "$v1" == *:* ]]; then
-        epoch1="${v1%%:*}"
-        v1="${v1#*:}"
-    fi
-    if [[ "$v2" == *:* ]]; then
-        epoch2="${v2%%:*}"
-        v2="${v2#*:}"
-    fi
-
-    if [ "$epoch1" -gt "$epoch2" ]; then
+    if dpkg --compare-versions "$v1" gt "$v2" 2>/dev/null; then
         echo "1"
-        return
-    elif [ "$epoch1" -lt "$epoch2" ]; then
-        echo "2"
-        return
-    fi
-
-    local upstream1="${v1%%-*}" revision1=""
-    local upstream2="${v2%%-*}" revision2=""
-    
-    if [[ "$v1" == *-* ]]; then
-        revision1="${v1##*-}"
-    fi
-    if [[ "$v2" == *-* ]]; then
-        revision2="${v2##*-}"
-    fi
-
-    local result=$(compare_version_part "$upstream1" "$upstream2")
-    if [ "$result" != "0" ]; then
-        echo "$result"
-        return
-    fi
-
-    compare_version_part "$revision1" "$revision2"
-}
-
-compare_version_part() {
-    local v1="$1" v2="$2"
-    
-    [ -z "$v1" ] && v1="0"
-    [ -z "$v2" ] && v2="0"
-    
-    if [ "$v1" = "$v2" ]; then
-        echo "0"
-        return
-    fi
-
-    IFS='.' read -ra parts1 <<< "$v1"
-    IFS='.' read -ra parts2 <<< "$v2"
-
-    local max_len=$(( ${#parts1[@]} > ${#parts2[@]} ? ${#parts1[@]} : ${#parts2[@]} ))
-
-    for (( i=0; i<max_len; i++ )); do
-        local p1="${parts1[$i]:-0}"
-        local p2="${parts2[$i]:-0}"
-
-        if [[ "$p1" == *~* ]] || [[ "$p2" == *~* ]]; then
-            local result=$(compare_with_tilde "$p1" "$p2")
-            if [ "$result" != "0" ]; then
-                echo "$result"
-                return
-            fi
-        else
-            local result=$(compare_single_part "$p1" "$p2")
-            if [ "$result" != "0" ]; then
-                echo "$result"
-                return
-            fi
-        fi
-    done
-
-    echo "0"
-}
-
-compare_with_tilde() {
-    local p1="$1" p2="$2"
-    
-    local pre1="${p1%%~*}" post1="" pre2="${p2%%~*}" post2=""
-    
-    if [[ "$p1" == *~* ]]; then
-        post1="${p1#*~}"
-    fi
-    if [[ "$p2" == *~* ]]; then
-        post2="${p2#*~}"
-    fi
-
-    local result=$(compare_single_part "$pre1" "$pre2")
-    if [ "$result" != "0" ]; then
-        echo "$result"
-        return
-    fi
-
-    if [[ "$p1" == *~* ]] && [[ "$p2" != *~* ]]; then
-        echo "2"
-    elif [[ "$p1" != *~* ]] && [[ "$p2" == *~* ]]; then
-        echo "1"
-    elif [[ "$p1" == *~* ]] && [[ "$p2" == *~* ]]; then
-        compare_single_part "$post1" "$post2"
-    else
-        echo "0"
-    fi
-}
-
-compare_single_part() {
-    local p1="$1" p2="$2"
-    
-    local num1="" alpha1="" num2="" alpha2=""
-    
-    if [[ "$p1" =~ ^([0-9]*)(.*)$ ]]; then
-        num1="${BASH_REMATCH[1]:-0}"
-        alpha1="${BASH_REMATCH[2]}"
-    fi
-    if [[ "$p2" =~ ^([0-9]*)(.*)$ ]]; then
-        num2="${BASH_REMATCH[1]:-0}"
-        alpha2="${BASH_REMATCH[2]}"
-    fi
-
-    if [ "$num1" -gt "$num2" ]; then
-        echo "1"
-        return
-    elif [ "$num1" -lt "$num2" ]; then
-        echo "2"
-        return
-    fi
-
-    if [ "$alpha1" \> "$alpha2" ]; then
-        echo "1"
-    elif [ "$alpha1" \< "$alpha2" ]; then
+    elif dpkg --compare-versions "$v1" lt "$v2" 2>/dev/null; then
         echo "2"
     else
         echo "0"
@@ -310,16 +179,17 @@ compare_info_files() {
     echo "Output file: $output_file"
     echo
     
-    PREV_PACKAGES=$(extract_packages "$prev_info")
-    CURR_PACKAGES=$(extract_packages "$curr_info")
+    local PREV_PACKAGES=$(extract_packages "$prev_info")
+    local CURR_PACKAGES=$(extract_packages "$curr_info")
     
-    PREV_TEMP=$(mktemp)
-    CURR_TEMP=$(mktemp)
+    local PREV_TEMP=$(mktemp)
+    local CURR_TEMP=$(mktemp)
+
     echo "$PREV_PACKAGES" | sort > "$PREV_TEMP"
     echo "$CURR_PACKAGES" | sort > "$CURR_TEMP"
     
-    PREV_NAMES=$(echo "$PREV_PACKAGES" | cut -d'=' -f1 | sort)
-    CURR_NAMES=$(echo "$CURR_PACKAGES" | cut -d'=' -f1 | sort)
+    local PREV_NAMES=$(echo "$PREV_PACKAGES" | cut -d'=' -f1 | sort)
+    local CURR_NAMES=$(echo "$CURR_PACKAGES" | cut -d'=' -f1 | sort)
     
     NEW_PACKAGES=$(comm -13 <(echo "$PREV_NAMES") <(echo "$CURR_NAMES"))
     REMOVED_PACKAGES=$(comm -23 <(echo "$PREV_NAMES") <(echo "$CURR_NAMES"))
@@ -485,12 +355,27 @@ generate_release_notes() {
     {
         if [ "$mode" = "build" ]; then
             if [ "$build_type" = "dev" ]; then
-                echo "> ⚠️ **DEVELOPMENT BUILD** - this development build is intended for testing purposes only."
+                echo "> ⚠️ **DEVELOPMENT BUILD** - Pre-release build for testing new features and bug fixes. May contain unstable code, incomplete features, or breaking changes. Not recommended for production use."
             elif [ "$build_type" = "rc" ]; then
-                echo "> ⚠️ **RELEASE CANDIDATE** - this release candidate is for final testing before stable release."
+                echo "> 🔍 **RELEASE CANDIDATE** - Feature-complete pre-release undergoing final testing. Stable enough for testing environments but should be validated before production deployment."
             fi
         elif [ "$mode" = "promote" ]; then
-            :
+            echo "> ✅ **STABLE RELEASE** - Production-ready release that has passed testing and validation."
+        fi
+
+        echo
+        if [ "$has_comparison" = "true" ] && [ -f "$comparison_file" ]; then
+            echo "## Changes since $prev_release"
+            echo
+            cat "$comparison_file"
+        else
+            echo "## What's changed"
+            echo
+            if [ "$has_comparison" = "true" ]; then
+                echo "Change comparison is currently unavailable."
+            else
+                echo "This is the initial release or comparison data is not available."
+            fi
         fi
 
         echo
@@ -498,30 +383,20 @@ generate_release_notes() {
         
         if [ "$skip_full" != "true" ]; then
             echo "- **Full image**: \`wlanpi-os-$full_version-full.img.gz\`"
-            echo "  - Complete image intended for all WLAN Pi devices except the WLAN Pi Go"
+            echo "  - Complete image for all compatible WLAN Pi devices except the WLAN Pi Go"
             echo
         fi
         
         echo "- **Lite image**: \`wlanpi-os-$full_version-lite.img.gz\`"
-        echo "  - Update image for WLAN Pi Go devices setup with the base A/B partition image"
-        echo "  - Single partition layout"
+        echo "  - Update image for WLAN Pi Go devices with existing A/B partition layout"
+        echo "  - Single partition layout for direct flashing to alternate partition"
         echo
 
         echo "- **Lite A/B partition image**: \`wlanpi-os-$full_version-lite-$ab_suffix.img.gz\`"
-        echo "  - Base image for WLAN Pi Go"
-        echo "  - Dual bootable system with A/B partitions (2 boot, 2 root, 1 persistent /home)"
-        echo "  - Provides failover capability via tryboot"
+        echo "  - Base image for WLAN Pi Go with A/B partition management"
+        echo "  - Layout: CONFIGFS + 2 boot + 2 root + shared home partition"
+        echo "  - Provides automated failover and safe update testing via tryboot"
         echo
-        
-        if [ "$has_comparison" = "true" ] && [ -f "$comparison_file" ]; then
-            echo "## Changes since $prev_release"
-            echo
-            cat "$comparison_file"
-        else
-            echo "## Changes"
-            echo
-            echo "Nothing found to compare."
-        fi
 
     } > "$output_file"
     
