@@ -1,6 +1,4 @@
 netbase
-wpasupplicant 
-raspberrypi-net-mods
-network-manager
+wpasupplicant
 iperf
 wavemon
