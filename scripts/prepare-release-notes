@@ -238,8 +238,8 @@ compare_info_files() {
                 if [ -n "$line" ]; then
                     pkg_name=$(echo "$line" | cut -d':' -f1)
                     versions=$(echo "$line" | cut -d':' -f2- | sed 's/^ *//')
-                    old_ver=$(echo "$versions" | cut -d'→' -f1 | sed 's/ *$//')
-                    new_ver=$(echo "$versions" | cut -d'→' -f2 | sed 's/^ *//')
+                    old_ver=$(echo "$versions" | sed 's/ *→.*//')
+                    new_ver=$(echo "$versions" | sed 's/.*→ *//')
                     echo "* $pkg_name: \`$old_ver\` → \`$new_ver\`"
                 fi
             done <<< "$UPGRADED_PACKAGES"
@@ -253,8 +253,8 @@ compare_info_files() {
                 if [ -n "$line" ]; then
                     pkg_name=$(echo "$line" | cut -d':' -f1)
                     versions=$(echo "$line" | cut -d':' -f2- | sed 's/^ *//')
-                    old_ver=$(echo "$versions" | cut -d'→' -f1 | sed 's/ *$//')
-                    new_ver=$(echo "$versions" | cut -d'→' -f2 | sed 's/^ *//')
+                    old_ver=$(echo "$versions" | sed 's/ *→.*//')
+                    new_ver=$(echo "$versions" | sed 's/.*→ *//')
                     echo "* $pkg_name: \`$old_ver\` → \`$new_ver\`"
                 fi
             done <<< "$DOWNGRADED_PACKAGES"
