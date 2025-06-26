@@ -9,7 +9,7 @@ on:
         default: false
 
       rc_tag:
-        description: '🔄 PROMOTE: a specific RC: requires full git tag (format is YYYY.MM.DD-rc.N e.g., 2025.04.19-rc.1)'
+        description: '🔄 PROMOTE: a specific RC: requires full git tag (format is YYYY.MM.DD-rc.N e.g., 2025.06.18-rc.7-Affogato)'
         required: false
         type: string
         
