@@ -9,12 +9,12 @@ on:
         default: false
 
       rc_tag:
-        description: '🔄 PROMOTE: a specific RC: requires full git tag (format is YYYY.MM.DD-rc.N e.g., 2025.06.18-rc.7-Affogato)'
+        description: '🔄 PROMOTE: a specific RC: requires full git tag (format is YY.MM-rc.N e.g., 25.07-rc.7-Affogato)'
         required: false
         type: string
         
       base_date:
-        description: '🔄/🔨 PROMOTE/BUILD: override todays date (format: YYYY.MM.DD, e.g., 2025.04.19) to continue incremental versioning'
+        description: '🔄/🔨 PROMOTE/BUILD: override todays date (format: YY.MM, e.g., 25.07) to continue incremental versioning'
         required: false
         type: string
 
@@ -28,7 +28,7 @@ on:
         default: both
 
       codename:
-        description: '🔨 BUILD: release codename ([development codename])'
+        description: '🔨 BUILD: release codename ([codename])'
         required: true
         type: string
         default: "theanine"
@@ -70,7 +70,7 @@ on:
         default: '2500'
 
       point_base:
-        description: '🔨 BUILD: for point releases (2025.04.19.1): specify base to create patch release for (e.g., 2025.04.19)'
+        description: '🔨 BUILD: for patch releases (YY.MM.patch): specify base to create patch release for (e.g., 25.07 becomes 25.07.1)'
         required: false
         type: string
 permissions:
@@ -95,9 +95,9 @@ jobs:
           echo "Checking for specific RC tag: ${{ github.event.inputs.rc_tag }}"
           RC_TAG="${{ github.event.inputs.rc_tag }}"
           if [ -z "$RC_TAG" ]; then
-            BASE_VERSION=$(date '+%Y.%m.%d')
+            BASE_VERSION=$(date '+%y.%m')
             echo "Using today's date as base: $BASE_VERSION"
-            RC_TAG=$(git tag -l "${BASE_VERSION}_rc.*" | sort -V | tail -n1)
+            RC_TAG=$(git tag -l "${BASE_VERSION}-rc.*" | sort -V | tail -n1)
             echo "Found RC tag: $RC_TAG"
           fi
 
@@ -119,17 +119,17 @@ jobs:
               BASE_VERSION="${{ github.event.inputs.base_date }}"
               echo "Looking for RC with base date: $BASE_VERSION"
             else
-              BASE_VERSION=$(date '+%Y.%m.%d')
+              BASE_VERSION=$(date '+%y.%m')
               echo "Looking for RC with today's date: $BASE_VERSION"
             fi
-            LATEST_RC=$(git tag -l "${BASE_VERSION}_rc.*" | sort -V | tail -n1)
+            LATEST_RC=$(git tag -l "${BASE_VERSION}-rc.*" | sort -V | tail -n1)
             if [ -z "$LATEST_RC" ]; then
               echo "Error: No RC found for date $BASE_VERSION"
               exit 1
             fi
           fi
 
-          RC_VERSION=$(echo "$LATEST_RC" | grep -o '^[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}')
+          RC_VERSION=$(echo "$LATEST_RC" | grep -o '^[0-9]\{2\}\.[0-9]\{2\}')
           FINAL_VERSION="$RC_VERSION"
 
           RC_RELEASE=$(gh release view "$LATEST_RC" --json name 2>/dev/null || echo "")
@@ -146,7 +146,7 @@ jobs:
           
           SAMPLE_FILE=$(ls download/*.sha256 2>/dev/null | head -n 1)
           if [ -n "$SAMPLE_FILE" ]; then
-            EXTRACTED_CODENAME=$(echo "$(basename "$SAMPLE_FILE")" | grep -oP '~rc\.[0-9]+-\K[^.]+' || echo "")
+            EXTRACTED_CODENAME=$(echo "$(basename "$SAMPLE_FILE")" | grep -oP '-rc\.[0-9]+-\K[^-]+' || echo "")
             if [ -n "$EXTRACTED_CODENAME" ] && [ "$EXTRACTED_CODENAME" != "$CODENAME" ]; then
               echo "Warning: Extracted codename '$EXTRACTED_CODENAME' differs from input codename '$CODENAME'"
               echo "Using extracted codename for consistency"
@@ -179,7 +179,7 @@ jobs:
             if [ -f "$FILE" ]; then
               EXTENSION="${FILE##*.}"
               BASE_NAME=$(basename "$FILE" .$EXTENSION)
-              RC_PART=$(echo "$BASE_NAME" | grep -o '[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}-rc\.[0-9]*' || echo "")
+              RC_PART=$(echo "$BASE_NAME" | grep -o '[0-9]\{2\}\.[0-9]\{2\}-rc\.[0-9]*' || echo "")
               if [ -n "$RC_PART" ]; then
                 NEW_BASE_NAME="${BASE_NAME/$RC_PART/$FINAL_VERSION}"
                 NEW_NAME="$NEW_BASE_NAME.$EXTENSION"
@@ -301,8 +301,8 @@ jobs:
       - name: Set version variables
         id: version
         run: |
-          # Version format: YYYY.MM.DD-type.N-codename
-          # Example: 2025.04.19-dev.1-theanine
+          # Version format: YY.MM-type.N-codename
+          # Example: 25.07-dev.1-theanine
 
           CODENAME="${{ github.event.inputs.codename }}"
           echo "codename=$CODENAME" >> $GITHUB_OUTPUT
@@ -310,7 +310,7 @@ jobs:
             BASE_VERSION="${{ github.event.inputs.base_date }}"
             echo "Using specified base date: $BASE_VERSION"
           else
-            BASE_VERSION=$(date '+%Y.%m.%d')
+            BASE_VERSION=$(date '+%y.%m')
             echo "Using today's date: $BASE_VERSION"
           fi
           BUILD_TYPE="${{ github.event.inputs.build_type }}"
