@@ -18,6 +18,12 @@ on:
         required: false
         type: string
 
+      codename:
+        description: '🔄/🔨 PROMOTE/BUILD: release codename label ([codename])'
+        required: true
+        type: string
+        default: "theanine"
+
       repos:
         description: '🔨 BUILD: which package cloud repos to include (default includes both dev/main)'
         required: true
@@ -27,11 +33,6 @@ on:
           - main
         default: both
 
-      codename:
-        description: '🔨 BUILD: release codename ([codename])'
-        required: true
-        type: string
-        default: "theanine"
 
       build_type:
         description: '🔨 BUILD: type of release to create (dev=development build, rc=release candidate, final=stable release, point=patch release [requires point_base])'
