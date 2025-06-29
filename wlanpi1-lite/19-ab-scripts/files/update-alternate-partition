@@ -6,7 +6,7 @@
 #
 # Requires: gunzip dd blkid mount sed
 #
-# Version: v0.6
+# Version: v0.7
 # Author: Josh Schmelzle
 # License: BSD-3
 
@@ -162,18 +162,16 @@ IS_AB_IMAGE=false
 if echo "$PART_INFO" | grep -q "W95 Ext'd"; then
     echo_debug "Detected A/B partitioned image with extended partition"
     IS_AB_IMAGE=true
-    
-    BOOT_START=$(echo "$PART_INFO" | awk '/p2[[:space:]]/ {print $3}')
-    ROOT_START=$(echo "$PART_INFO" | awk '/p5[[:space:]]/ {print $2}')
-    BOOT_SIZE=$(echo "$PART_INFO" | awk '/p2[[:space:]]/ {print $5}')
-    ROOT_SIZE=$(echo "$PART_INFO" | awk '/p5[[:space:]]/ {print $5}')
-    
+
+    BOOT_START=$(echo "$PART_INFO" | awk '/img2[[:space:]]/ {print $3}')
+    BOOT_SIZE=$(echo "$PART_INFO" | awk '/img2[[:space:]]/ {print $5}')
+
+    EXTENDED_START=$(echo "$PART_INFO" | awk '/img4[[:space:]]/ {print $2}')
+    ROOT_START=$((EXTENDED_START + 2048))
+    ROOT_SIZE=5120000  # WARNING: HARD CODED ROOT SIZE (TODO)
+
     if [ -z "$BOOT_START" ] || [ -z "$ROOT_START" ]; then
-        echo_debug "Warning: Could not parse partition offsets, using defaults"
-        BOOT_START=34816    # Fallback
-        ROOT_START=1085440  # Fallback
-        BOOT_SIZE=524288    # 256MB
-        ROOT_SIZE=5120000   # 2.4GB
+        echo_error "Warning: Could not parse partition offsets for A/B image"
     fi
     
     echo_debug "Parsed A/B partition offsets: boot=$BOOT_START, root=$ROOT_START"
