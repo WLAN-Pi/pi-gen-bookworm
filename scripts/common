@@ -106,7 +106,12 @@ on_chroot() {
 export -f on_chroot
 
 update_issue() {
-	echo -e "${PI_GEN_RELEASE} OS reference built on ${IMG_DATE}\nVersion ${WLANPI_FULL_VERSION}\nGenerated using ${PI_GEN}, ${PI_GEN_REPO}, ${GIT_HASH}, ${1}" > "${ROOTFS_DIR}/etc/rpi-issue"
+	if [[ "$WLANPI_FULL_VERSION" == *"-rc."* ]]; then
+		PRINT_VERSION="$WLANPI_BASE_VERSION"
+	else
+		PRINT_VERSION="$WLANPI_FULL_VERSION"
+	fi
+	echo -e "${PI_GEN_RELEASE} OS reference built on ${IMG_DATE}\nVersion ${PRINT_VERSION}\nGenerated using ${PI_GEN}, ${PI_GEN_REPO}, ${GIT_HASH}, ${1}" > "${ROOTFS_DIR}/etc/rpi-issue"
 }
 export -f update_issue
 
