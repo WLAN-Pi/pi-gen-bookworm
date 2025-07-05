@@ -33,6 +33,11 @@ on:
           - final
           - point
 
+      point_base:
+        description: '🔨 BUILD: point base for patch releases (YY.MM.patch): specify base to create patch release for (e.g., 25.07 becomes 25.07.1)'
+        required: false
+        type: string
+
       skip_full_image:
         description: '🔨 BUILD: lite image only'
         required: false
@@ -57,11 +62,6 @@ on:
         required: false
         type: string
         default: '2500'
-
-      point_base:
-        description: '🔨 BUILD: for patch releases (YY.MM.patch): specify base to create patch release for (e.g., 25.07 becomes 25.07.1)'
-        required: false
-        type: string
 permissions:
   contents: write
 jobs:
