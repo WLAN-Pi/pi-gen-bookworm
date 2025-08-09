@@ -36,7 +36,7 @@ on_chroot <<CHEOF
 	update-pciids
 
 	# Install wireless-regdb
-	wget -O /tmp/wireless-regdb.deb http://ftp.us.debian.org/debian/pool/main/w/wireless-regdb/wireless-regdb_2025.02.20-1_all.deb
+	wget -O /tmp/wireless-regdb.deb http://ftp.us.debian.org/debian/pool/main/w/wireless-regdb/wireless-regdb_2025.07.10-1_all.deb
 	dpkg -i /tmp/wireless-regdb.deb
 	rm -f /tmp/wireless-regdb.deb
 	update-alternatives --set regulatory.db /lib/firmware/regulatory.db-upstream
