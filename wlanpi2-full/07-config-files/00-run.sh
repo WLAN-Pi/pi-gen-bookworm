@@ -45,48 +45,25 @@ on_chroot <<CHEOF
 	echo "kernel.panic = 5" >> /etc/sysctl.conf
 CHEOF
 
-cat > "${ROOTFS_DIR}/tmp/update-os-release.sh" << EOF
+cat > "${ROOTFS_DIR}/tmp/update-wlanpi-release.sh" << EOF
 #!/bin/bash
 echo "Debug: WLANPI_VERSION=\${WLANPI_VERSION}"
-echo "Debug: WLANPI_CODENAME=\${WLANPI_CODENAME}"
-echo "Debug: WLANPI_HOME_URL=\${WLANPI_HOME_URL}"
-echo "Debug: WLANPI_SUPPORT_URL=\${WLANPI_SUPPORT_URL}"
-echo "Debug: WLANPI_BUG_REPORT_URL=\${WLANPI_BUG_REPORT_URL}"
 
 echo "=== Setting WLAN Pi version information ==="
 echo "VERSION=${WLANPI_VERSION}" > /etc/wlanpi-release
 chmod 644 /etc/wlanpi-release 
 
-echo "=== Updating /etc/os-release release information ==="
-echo "Original /etc/os-release content:"
-cat /etc/os-release
-
-# Update os-release file with WLAN Pi specific information
-sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"WLAN Pi GNU\/Linux 12 (${WLANPI_CODENAME})\"/" /etc/os-release
-sed -i 's/^NAME=.*/NAME="WLAN Pi GNU\/Linux"/' /etc/os-release 
-sed -i 's|^HOME_URL=.*|HOME_URL="${WLANPI_HOME_URL}"|' /etc/os-release
-sed -i 's|^SUPPORT_URL=.*|SUPPORT_URL="${WLANPI_SUPPORT_URL}"|' /etc/os-release
-sed -i 's|^BUG_REPORT_URL=.*|BUG_REPORT_URL="${WLANPI_BUG_REPORT_URL}"|' /etc/os-release
-sed -i 's/^VERSION_CODENAME=.*/VERSION_CODENAME=${WLANPI_CODENAME}/' /etc/os-release
-
-echo "Updated /etc/os-release content:"
-cat /etc/os-release
-
 echo "=== /etc/os-release update complete ==="
 EOF
 
-chmod +x "${ROOTFS_DIR}/tmp/update-os-release.sh"
+chmod +x "${ROOTFS_DIR}/tmp/update-wlanpi-release.sh"
 
 on_chroot << EOF
 WLANPI_VERSION="${WLANPI_VERSION}" \
-WLANPI_CODENAME="${WLANPI_CODENAME}" \
-WLANPI_HOME_URL="${WLANPI_HOME_URL}" \
-WLANPI_SUPPORT_URL="${WLANPI_SUPPORT_URL}" \
-WLANPI_BUG_REPORT_URL="${WLANPI_BUG_REPORT_URL}" \
-/tmp/update-os-release.sh 
+/tmp/update-wlanpi-release.sh 
 EOF
 
-rm -f "${ROOTFS_DIR}/tmp/update-os-release.sh"
+rm -f "${ROOTFS_DIR}/tmp/update-wlanpi-release.sh"
 
 # Add our custom sudoers file
 copy_overlay /etc/sudoers.d/wlanpidump -o root -g root -m 440
