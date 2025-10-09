@@ -98,8 +98,10 @@ jobs:
         run: |
           echo "Repos choice: $REPOS"
           if [ "$REPOS" = "both" ]; then
+            echo 'Setting INCLUDE_PACKAGECLOUD_DEV to 1'
             echo 'INCLUDE_PACKAGECLOUD_DEV=1' >> $GITHUB_OUTPUT
           else
+            echo 'Setting INCLUDE_PACKAGECLOUD_DEV to 0'
             echo 'INCLUDE_PACKAGECLOUD_DEV=0' >> $GITHUB_OUTPUT
           fi
 
@@ -262,6 +264,7 @@ jobs:
           echo "WLANPI_CODENAME: ${{ needs.build-prep.outputs.codename }}"
           echo "WLANPI_FULL_VERSION: ${{ needs.build-prep.outputs.full_version }}"
           echo "SKIP_FULL_IMAGE: ${{ github.event.inputs.skip_full_image }}"
+          echo "INCLUDE_PACKAGECLOUD_DEV: ${{ github.event.inputs.include_packagecloud_dev }}""
 
       - name: Sudo build images
         id: build_images
@@ -272,6 +275,7 @@ jobs:
           WLANPI_CODENAME: ${{ needs.build-prep.outputs.codename }}
           WLANPI_FULL_VERSION: ${{ needs.build-prep.outputs.full_version }}
           SKIP_FULL_IMAGE: ${{ github.event.inputs.skip_full_image }}
+          INCLUDE_PACKAGECLOUD_DEV: ${{ github.event.inputs.skip_full_image }}
         run: |
           if [ "$SKIP_FULL_IMAGE" = "true" ]; then
             echo "Skipping full image build as requested"
