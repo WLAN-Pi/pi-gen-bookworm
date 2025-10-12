@@ -702,16 +702,19 @@ mkdir -p "$NEW_ROOTFS/etc/systemd/system"
 cat > "$NEW_ROOTFS/etc/systemd/system/expand-home-partition.service" << EOF
 [Unit]
 Description=Expand home partition to fill remaining disk
+DefaultDependencies=no
 After=local-fs.target
+Before=sysinit.target
 ConditionPathExists=!/etc/home-partition-expanded
+RequiresMountsFor=/home
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/sbin/expand-home-partition
 RemainAfterExit=yes
+ExecStart=/usr/local/sbin/expand-home-partition
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=sysinit.target
 EOF
 
 mkdir -p "$NEW_ROOTFS/etc/systemd/system/multi-user.target.wants"
