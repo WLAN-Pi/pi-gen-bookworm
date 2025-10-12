@@ -3,7 +3,6 @@ Description=Set machine-id from WLAN Pi Go hardware serial number
 DefaultDependencies=no
 After=local-fs.target expand-home-partition.service
 Before=sysinit.target systemd-machine-id-commit.service
-ConditionPathIsReadWrite=/etc
 RequiresMountsFor=/home
 
 [Service]
