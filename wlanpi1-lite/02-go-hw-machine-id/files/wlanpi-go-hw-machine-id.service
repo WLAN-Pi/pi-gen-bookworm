@@ -8,7 +8,7 @@ RequiresMountsFor=/home
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/local/sbin/go-hw-machine-id.sh
+ExecStart=/bin/bash -c '/usr/bin/sudo -u root /usr/local/sbin/go-hw-machine-id.sh'
 TimeoutSec=30
 
 [Install]
