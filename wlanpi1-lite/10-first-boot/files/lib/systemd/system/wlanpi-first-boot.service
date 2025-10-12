@@ -3,10 +3,10 @@ Description=Script executed only once at the first boot to finish image configur
 After=network-online.target ufw.service local-fs.target
 Wants=network-online.target
 Requires=local-fs.target
+ConditionPathExists=!/var/lib/first-boot-done
 
 [Service]
 Type=oneshot
-ExecStartPre=/usr/bin/test ! -f /var/lib/first-boot-done
 ExecStart=/usr/bin/first-boot.sh
 ExecStartPost=touch /var/lib/first-boot-done
 RemainAfterExit=yes
