@@ -41,7 +41,11 @@ export DEBIAN_FRONTEND=noninteractive
 
 # apt-cacher-ng proxy for faster rebuilds
 # Note: May have issues with archive.raspberrypi.com, but caches Debian repos
-if [ -f /.dockerenv ] || [ -f /run/.containerenv ]; then
+# Skip APT_PROXY setup in GitHub Actions CI - runners have good network connectivity
+if [ "${GITHUB_ACTIONS}" = "true" ]; then
+    echo "GitHub Actions CI detected: skipping APT_PROXY configuration"
+    unset APT_PROXY
+elif [ -f /.dockerenv ] || [ -f /run/.containerenv ]; then
     HOST_IP=$(ip route | grep default | awk '{print $3}')
     if [ -n "$HOST_IP" ]; then
         APT_PROXY="http://${HOST_IP}:3142"
