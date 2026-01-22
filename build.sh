@@ -125,7 +125,24 @@ run_stage(){
 
 term() {
 	if [ "$?" -ne 0 ]; then
-		log "Build failed"
+		BUILD_FAIL_TIME=$(date +%s)
+		BUILD_FAIL_TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S %Z')
+		if [ -n "${BUILD_START_TIME}" ]; then
+			BUILD_FAIL_DURATION=$((BUILD_FAIL_TIME - BUILD_START_TIME))
+			BUILD_FAIL_FORMATTED=$(printf '%02d:%02d:%02d' $((BUILD_FAIL_DURATION/3600)) $((BUILD_FAIL_DURATION%3600/60)) $((BUILD_FAIL_DURATION%60)))
+			log "Build failed at: ${BUILD_FAIL_TIMESTAMP} (after ${BUILD_FAIL_FORMATTED})"
+			echo ""
+			echo "========================================"
+			echo "Build FAILED"
+			echo "========================================"
+			echo "Started:  ${BUILD_START_TIMESTAMP}"
+			echo "Failed:   ${BUILD_FAIL_TIMESTAMP}"
+			echo "Duration: ${BUILD_FAIL_FORMATTED}"
+			echo "========================================"
+			echo ""
+		else
+			log "Build failed"
+		fi
 	else
 		log "Build finished"
 	fi
@@ -182,8 +199,9 @@ export IMG_NAME="${IMG_NAME:-wlanpi-os-$RELEASE-$ARCH}"
 export WLANPI_BASE_VERSION=${WLANPI_BASE_VERSION:-$(date '+%y.%m')}
 export WLANPI_VERSION=${WLANPI_VERSION:-$(date '+%y.%m')}
 export WLANPI_CODENAME=${WLANPI_CODENAME:-"theanine"}
-export WLANPI_FULL_VERSION=${WLANPI_FULL_VERSION}
+export WLANPI_FULL_VERSION=${WLANPI_FULL_VERSION:-"${WLANPI_VERSION}-${WLANPI_CODENAME}"}
 export IMG_FILENAME="${IMG_NAME}-${WLANPI_FULL_VERSION}"
+export ARCHIVE_FILENAME="${ARCHIVE_FILENAME:-${IMG_FILENAME}}"
 export WLANPI_HOME_URL="https://wlanpi.com"
 export WLANPI_SUPPORT_URL="https://github.com/orgs/WLAN-Pi/discussions"
 export WLANPI_BUG_REPORT_URL="https://github.com/WLAN-Pi"
@@ -197,15 +215,28 @@ echo "WLANPI_VERSION is ${WLANPI_VERSION}"
 echo "WLANPI_CODENAME is ${WLANPI_CODENAME}"
 echo "WLANPI_FULL_VERSION is ${WLANPI_FULL_VERSION}"
 echo "RELEASE is ${RELEASE}"
+echo "ARCH is ${ARCH}"
 echo "IMG_NAME is ${IMG_NAME}"
 echo "IMG_FILENAME is ${IMG_FILENAME}"
+echo "ARCHIVE_FILENAME is ${ARCHIVE_FILENAME}"
+echo "DEPLOY_COMPRESSION is ${DEPLOY_COMPRESSION}"
+echo "COMPRESSION_LEVEL is ${COMPRESSION_LEVEL}"
+echo "WORK_DIR is ${WORK_DIR}"
+echo "DEPLOY_DIR is ${DEPLOY_DIR}"
+echo "APT_PROXY is ${APT_PROXY:-<not set>}"
+echo "STAGE_LIST is ${STAGE_LIST}"
+echo "SKIP_FULL_IMAGE is ${SKIP_FULL_IMAGE}"
+echo "INCLUDE_PACKAGECLOUD_DEV is ${INCLUDE_PACKAGECLOUD_DEV}"
+echo "IMG_DATE is ${IMG_DATE}"
 echo "WLANPI_HOME_URL is ${WLANPI_HOME_URL}"
 echo "WLANPI_SUPPORT_URL is ${WLANPI_SUPPORT_URL}"
 echo "WLANPI_BUG_REPORT_URL is ${WLANPI_BUG_REPORT_URL}"
-echo "IMG_DATE is ${IMG_DATE}"
-echo "INCLUDE_PACKAGECLOUD_DEV is ${INCLUDE_PACKAGECLOUD_DEV}"
-echo "SKIP_FULL_IMAGE is ${SKIP_FULL_IMAGE}"
 echo "=== /BUILD VARS ==="
+
+# Validation checks
+if [ -z "${ARCHIVE_FILENAME}" ]; then
+	echo "WARNING: ARCHIVE_FILENAME is empty, output files may have broken names!"
+fi
 
 export USE_QEMU="${USE_QEMU:-0}"
 export SCRIPT_DIR="${BASE_DIR}/scripts"
@@ -333,7 +364,10 @@ if [[ "${PUBKEY_ONLY_SSH}" = "1" && -z "${PUBKEY_SSH_FIRST_USER}" ]]; then
 	exit 1
 fi
 
+BUILD_START_TIME=$(date +%s)
+BUILD_START_TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S %Z')
 log "Begin ${BASE_DIR}"
+log "Build started at: ${BUILD_START_TIMESTAMP}"
 
 STAGE_LIST=${STAGE_LIST:-${BASE_DIR}/stage*}
 if [ "$SKIP_FULL_IMAGE" = "true" ]; then
@@ -383,4 +417,21 @@ if [ -x "${BASE_DIR}/postrun.sh" ]; then
 	log "End postrun.sh"
 fi
 
+BUILD_END_TIME=$(date +%s)
+BUILD_END_TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S %Z')
+BUILD_DURATION=$((BUILD_END_TIME - BUILD_START_TIME))
+BUILD_DURATION_FORMATTED=$(printf '%02d:%02d:%02d' $((BUILD_DURATION/3600)) $((BUILD_DURATION%3600/60)) $((BUILD_DURATION%60)))
+
 log "End ${BASE_DIR}"
+log "Build completed at: ${BUILD_END_TIMESTAMP}"
+log "Total build time: ${BUILD_DURATION_FORMATTED} (${BUILD_DURATION} seconds)"
+
+echo ""
+echo "========================================"
+echo "Build Summary"
+echo "========================================"
+echo "Started:  ${BUILD_START_TIMESTAMP}"
+echo "Finished: ${BUILD_END_TIMESTAMP}"
+echo "Duration: ${BUILD_DURATION_FORMATTED}"
+echo "========================================"
+echo ""

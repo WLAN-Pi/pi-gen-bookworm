@@ -36,7 +36,7 @@ on_chroot <<CHEOF
 	update-pciids
 
 	# Install wireless-regdb
-	wget -O /tmp/wireless-regdb.deb http://ftp.us.debian.org/debian/pool/main/w/wireless-regdb/wireless-regdb_2025.07.10-1_all.deb
+	wget -O /tmp/wireless-regdb.deb http://ftp.us.debian.org/debian/pool/main/w/wireless-regdb/wireless-regdb_2025.10.07-1_all.deb
 	dpkg -i /tmp/wireless-regdb.deb
 	rm -f /tmp/wireless-regdb.deb
 	update-alternatives --set regulatory.db /lib/firmware/regulatory.db-upstream
@@ -71,53 +71,3 @@ copy_overlay /etc/sudoers.d/wlanpidump -o root -g root -m 440
 # Copy config file: avahi-daemon
 copy_overlay /etc/avahi/avahi-daemon.conf -o root -g root -m 644
 
-# Copy config files
-install -m 644 files/.vimrc "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.vimrc"
-install -m 644 files/.tmux.conf "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.tmux.conf"
-install -m 644 files/.bash_aliases "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.bash_aliases"
-install -m 644 files/.vimrc "${ROOTFS_DIR}/root/.vimrc"
-install -m 644 files/.tmux.conf "${ROOTFS_DIR}/root/.tmux.conf"
-
-# Set term for ghostty
-# Add fzf key bindings and completion to .bashrc
-cat >> "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.bashrc" << 'EOF'
-
-# Enable fzf key bindings and completion if available
-if [ -f /usr/share/doc/fzf/examples/key-bindings.bash ]; then
-        source /usr/share/doc/fzf/examples/key-bindings.bash
-fi
-
-if [ -f /usr/share/doc/fzf/examples/completion.bash ]; then
-        source /usr/share/doc/fzf/examples/completion.bash
-fi
-
-if [[ "$TERM" == "xterm-ghostty" ]]; then
-    export TERM=xterm-256color
-	PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w \$\[\033[00m\] '
-fi
-EOF
-
-# Stage tmux and vim config for both user and root for consistent experience
-on_chroot << EOF
-# Create necessary directories for both users
-mkdir -p /home/${FIRST_USER_NAME}/.vim/undodir
-mkdir -p /root/.vim/undodir
-
-# Create empty viminfo files
-touch /home/${FIRST_USER_NAME}/.vim/viminfo
-touch /root/.vim/viminfo
-
-# Set ownership for regular user
-chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.vimrc
-chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.tmux.conf
-chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.vim
-chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.bash_aliases
-
-# Set permissions for user
-chmod 600 /home/${FIRST_USER_NAME}/.vim/viminfo
-chmod 700 /home/${FIRST_USER_NAME}/.vim/undodir
-
-# Set permissions for root
-chmod 600 /root/.vim/viminfo
-chmod 700 /root/.vim/undodir
-EOF

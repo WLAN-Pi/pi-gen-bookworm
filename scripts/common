@@ -18,7 +18,21 @@ bootstrap(){
 	BOOTSTRAP_ARGS+=("$@")
 	printf -v BOOTSTRAP_STR '%q ' "${BOOTSTRAP_ARGS[@]}"
 
-	capsh $CAPSH_ARG -- -c "'${BOOTSTRAP_CMD}' $BOOTSTRAP_STR" || true
+	set +e
+	capsh $CAPSH_ARG -- -c "'${BOOTSTRAP_CMD}' $BOOTSTRAP_STR"
+	BOOTSTRAP_RC=$?
+	set -e
+
+	if [ $BOOTSTRAP_RC -ne 0 ]; then
+		log "bootstrap command failed with exit code $BOOTSTRAP_RC"
+		if [ -d "$2/debootstrap" ]; then
+			if [ -f "$2/debootstrap/debootstrap.log" ]; then
+				cp "$2/debootstrap/debootstrap.log" "${STAGE_WORK_DIR}"
+				log "bootstrap failed: please check ${STAGE_WORK_DIR}/debootstrap.log"
+			fi
+		fi
+		return 1
+	fi
 
 	if [ -d "$2/debootstrap" ] && ! rmdir "$2/debootstrap"; then
 		cp "$2/debootstrap/debootstrap.log" "${STAGE_WORK_DIR}"

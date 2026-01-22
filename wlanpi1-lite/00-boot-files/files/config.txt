@@ -43,12 +43,19 @@ arm_boost=1
 dtparam=act_led_trigger=heartbeat
 
 [cm4]
+dtoverlay=max3421-hcd
+gpio=27=op,dh
+dtoverlay=uart0
+dtoverlay=uart2
+dtoverlay=uart3
+dtoverlay=disable-bt
+dtoverlay=disable-wifi
 # Enable host mode on the 2711 built-in XHCI USB controller.
 # This line should be removed if the legacy DWC2 controller is required
 # (e.g. for USB device mode) or if USB support is not required.
-otg_mode=1
+# otg_mode=1
 
-[cm5]
-dtoverlay=dwc2,dr_mode=host
+dtoverlay=dwc2
 
 [all]
+kernel=wlanpi-kernel8.img

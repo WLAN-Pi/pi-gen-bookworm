@@ -1,4 +1,6 @@
+01-zzz-local-changes/
 deploy/*
+export-image/05-finalise/deploy/*
 work/*
 postrun.sh
 SKIP
