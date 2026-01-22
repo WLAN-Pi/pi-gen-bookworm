@@ -13,9 +13,9 @@ install -v -m 644 files/etc/default/tftpd-hpa "${ROOTFS_DIR}/etc/default/tftpd-h
 
 on_chroot << EOF
 echo "=== Adding Kismet repository ==="
-# Add Kismet repository for bookworm (using official installation method)
+# Add Kismet repository for trixie (using official installation method)
 wget -O - https://www.kismetwireless.net/repos/kismet-release.gpg.key --quiet | gpg --dearmor | tee /usr/share/keyrings/kismet-archive-keyring.gpg >/dev/null
-echo 'deb [signed-by=/usr/share/keyrings/kismet-archive-keyring.gpg] https://www.kismetwireless.net/repos/apt/release/bookworm bookworm main' | tee /etc/apt/sources.list.d/kismet.list >/dev/null
+echo 'deb [signed-by=/usr/share/keyrings/kismet-archive-keyring.gpg] https://www.kismetwireless.net/repos/apt/release/trixie trixie main' | tee /etc/apt/sources.list.d/kismet.list >/dev/null
 apt update
 echo "=== Kismet repository added ==="
 

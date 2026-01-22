@@ -11,7 +11,7 @@ less
 libpam-chksshpwd
 parted
 pciutils
-policykit-1
+polkitd
 python-is-python3
 raspberrypi-sys-mods
 raspi-config

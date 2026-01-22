@@ -1,6 +1,6 @@
-wlanpi-webui
-wlanpi-core
-wlanpi-profiler
+#wlanpi-webui
+#wlanpi-core
+#wlanpi-profiler
 wlanpi-misc-firmware
-wlanpi-common
-wlanpi-wipry
+#wlanpi-common
+#wlanpi-wipry
