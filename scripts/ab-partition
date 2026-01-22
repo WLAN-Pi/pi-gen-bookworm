@@ -733,6 +733,8 @@ fi
 
 echo "Performing controlled cleanup and finalization ..."
 sync
+sleep 2  # Allow journal to flush
+sync     # Double-sync for safety
 if mountpoint -q "$NEW_ROOTFS/boot"; then
 umount "$NEW_ROOTFS/boot"
 fi

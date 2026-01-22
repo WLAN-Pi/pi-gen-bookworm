@@ -1,7 +1,15 @@
 #!/bin/bash -e
 
 on_chroot <<CHEOF
+	# Add wlanpi to groups
+	usermod -aG sudo wlanpi
+	usermod -aG www-data wlanpi
+	usermod -aG kismet wlanpi
+
+	# Include system binaries in wlanpi's PATH - avoid using sudo
+	echo 'export PATH="\$PATH:/usr/local/sbin:/usr/sbin:/sbin"' >> /home/wlanpi/.profile
+
 	# Make the wlanpi user change their password at first login
-	# passwd -e wlanpi
+	passwd -e wlanpi
 
 CHEOF

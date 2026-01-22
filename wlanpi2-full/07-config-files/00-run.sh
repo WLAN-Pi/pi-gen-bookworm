@@ -1,5 +1,9 @@
 #!/bin/bash -e
 
+# Copy default avahi ssh.service
+[[ -f "${ROOTFS_DIR}"/usr/share/doc/avahi-daemon/examples/ssh.service ]] && \
+cp "${ROOTFS_DIR}"/usr/share/doc/avahi-daemon/examples/ssh.service "${ROOTFS_DIR}"/etc/avahi/services/
+
 on_chroot <<CHEOF
 	# Set retry for dhclient
 	if grep -q -E "^#?retry " /etc/dhcp/dhclient.conf; then
@@ -26,8 +30,31 @@ on_chroot <<CHEOF
 		echo "send dhcp-client-identifier = hardware;" >> /etc/dhcp/dhclient.conf
 	fi
 
+	# Setup: TFTP
+	usermod -a -G tftp wlanpi
+	chown -R tftp:tftp /srv/tftp
+	chmod 775 /srv/tftp
+
+	# Configure avahi txt record: id=wlanpi
+	sed -i '/<port>/ a \ \ \ \ <txt-record>id=wlanpi</txt-record>' /etc/avahi/services/ssh.service
+
 	# Change default systemd boot target from graphical.target to multi-user.target
 	systemctl set-default multi-user.target
+
+	# Remove default Debian MOTD
+	rm -f /etc/motd
+
+	# Remove Cockpit MOTD
+	rm -f /etc/motd.d/cockpit
+
+	# Remove existing MOTD
+	rm -f /etc/update-motd.d/10-uname
+
+	# Auto-start systemd-networkd used by Bluetooth pan0 and usb0
+	systemctl enable systemd-networkd
+
+	# Prevent interfaces from being managed by dhcpcd which conflicts with systemd
+	echo "denyinterfaces usb* pan*" | tee -a /etc/dhcpcd.conf
 
 	# Configure arp_ignore: network/arp
 	echo "net.ipv4.conf.eth0.arp_ignore = 1" >> /etc/sysctl.conf
@@ -36,13 +63,13 @@ on_chroot <<CHEOF
 	update-pciids
 
 	# Install wireless-regdb
-	wget -O /tmp/wireless-regdb.deb http://ftp.us.debian.org/debian/pool/main/w/wireless-regdb/wireless-regdb_2025.07.10-1_all.deb
+	wget -O /tmp/wireless-regdb.deb http://ftp.us.debian.org/debian/pool/main/w/wireless-regdb/wireless-regdb_2025.10.07-1_all.deb
 	dpkg -i /tmp/wireless-regdb.deb
 	rm -f /tmp/wireless-regdb.deb
 	update-alternatives --set regulatory.db /lib/firmware/regulatory.db-upstream
 
-	# Automatically reboot after 5 seconds if a kernel panic occurs
-	echo "kernel.panic = 5" >> /etc/sysctl.conf
+	# Automatically reboot after 1 second if a kernel panic occurs
+	echo "kernel.panic = 1" >> /etc/sysctl.conf
 CHEOF
 
 cat > "${ROOTFS_DIR}/tmp/update-wlanpi-release.sh" << EOF
@@ -65,8 +92,14 @@ EOF
 
 rm -f "${ROOTFS_DIR}/tmp/update-wlanpi-release.sh"
 
+# Setup TFTP
+copy_overlay /etc/default/tftpd-hpa -o root -g root -m 644
+
 # Add our custom sudoers file
 copy_overlay /etc/sudoers.d/wlanpidump -o root -g root -m 440
+
+# Copy ufw rules
+copy_overlay /etc/ufw/user.rules -o root -g root -m 640
 
 # Add a default wpa_supplicant configuration with the control interface disabled
 copy_overlay /etc/wpa_supplicant/wpa_supplicant.conf -o root -g root -m 600
@@ -74,53 +107,9 @@ copy_overlay /etc/wpa_supplicant/wpa_supplicant.conf -o root -g root -m 600
 # Copy config file: avahi-daemon
 copy_overlay /etc/avahi/avahi-daemon.conf -o root -g root -m 644
 
-# Copy config files
-install -m 644 files/.vimrc "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.vimrc"
-install -m 644 files/.tmux.conf "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.tmux.conf"
-install -m 644 files/.bash_aliases "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.bash_aliases"
-install -m 644 files/.vimrc "${ROOTFS_DIR}/root/.vimrc"
-install -m 644 files/.tmux.conf "${ROOTFS_DIR}/root/.tmux.conf"
+# Copy config file: kismet_site.conf
+copy_overlay /etc/kismet/kismet_site.conf -o root -g root -m 644
 
-# Set term for ghostty
-# Add fzf key bindings and completion to .bashrc
-cat >> "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.bashrc" << 'EOF'
+# Copy config file: kismet.service.d/override.conf
+copy_overlay /etc/systemd/system/kismet.service.d/override.conf -o root -g root -m 644
 
-# Enable fzf key bindings and completion if available
-if [ -f /usr/share/doc/fzf/examples/key-bindings.bash ]; then
-        source /usr/share/doc/fzf/examples/key-bindings.bash
-fi
-
-if [ -f /usr/share/doc/fzf/examples/completion.bash ]; then
-        source /usr/share/doc/fzf/examples/completion.bash
-fi
-
-if [[ "$TERM" == "xterm-ghostty" ]]; then
-    export TERM=xterm-256color
-	PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w \$\[\033[00m\] '
-fi
-EOF
-
-# Stage tmux and vim config for both user and root for consistent experience
-on_chroot << EOF
-# Create necessary directories for both users
-mkdir -p /home/${FIRST_USER_NAME}/.vim/undodir
-mkdir -p /root/.vim/undodir
-
-# Create empty viminfo files
-touch /home/${FIRST_USER_NAME}/.vim/viminfo
-touch /root/.vim/viminfo
-
-# Set ownership for regular user
-chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.vimrc
-chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.tmux.conf
-chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.vim
-chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.bash_aliases
-
-# Set permissions for user
-chmod 600 /home/${FIRST_USER_NAME}/.vim/viminfo
-chmod 700 /home/${FIRST_USER_NAME}/.vim/undodir
-
-# Set permissions for root
-chmod 600 /root/.vim/viminfo
-chmod 700 /root/.vim/undodir
-EOF

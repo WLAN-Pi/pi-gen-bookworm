@@ -1,4 +1,5 @@
 systemd-timesyncd
+cloud-guest-utils
 lsof
 wget
 avahi-daemon
@@ -19,3 +20,4 @@ gpsd
 lm-sensors
 avahi-utils
 mtr-tiny
+tftpd-hpa
