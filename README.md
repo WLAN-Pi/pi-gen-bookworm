@@ -1,6 +1,6 @@
-# WLAN Pi OS builder (bookworm)
+# WLAN Pi OS builder (trixie branch)
 
-Tool based on pi-gen to generate WLAN Pi OS images for bookworm.
+Tool based on pi-gen to generate WLAN Pi OS images for trixie.
 
 ## Docs
 
