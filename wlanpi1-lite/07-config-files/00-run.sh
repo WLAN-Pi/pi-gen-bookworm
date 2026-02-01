@@ -72,4 +72,4 @@ copy_overlay /etc/sudoers.d/wlanpidump -o root -g root -m 440
 copy_overlay /etc/avahi/avahi-daemon.conf -o root -g root -m 644
 
 # Copy config file: wlanpi-state (WLAN Pi Mode)
-copy_overlay /etc/state -o root -g root -m 644
+copy_overlay /etc/wlanpi-state -o root -g root -m 644
