@@ -114,4 +114,4 @@ copy_overlay /etc/kismet/kismet_site.conf -o root -g root -m 644
 copy_overlay /etc/systemd/system/kismet.service.d/override.conf -o root -g root -m 644
 
 # Copy config file: wlanpi-state (WLAN Pi Mode)
-copy_overlay /etc/state -o root -g root -m 644
+copy_overlay /etc/wlanpi-state -o root -g root -m 644
