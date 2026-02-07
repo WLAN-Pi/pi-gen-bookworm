@@ -275,6 +275,14 @@ echo_debug "Root partition completed in ${ROOT_ELAPSED} seconds"
 TOTAL_TIME=$((BOOT_ELAPSED + ROOT_ELAPSED))
 echo_debug "Total time for boot and root copy: ${TOTAL_TIME} seconds"
 
+echo_debug "Setting partition labels for A/B slot $INACTIVE_SET ..."
+# Set root partition label (ext4 filesystem)
+if [[ "$INACTIVE_SET" == "A" ]]; then
+    e2label "$INACTIVE_ROOT" ROOT1FS 2>/dev/null || echo_warning "Failed to set root label (may already be correct)"
+else
+    e2label "$INACTIVE_ROOT" ROOT2FS 2>/dev/null || echo_warning "Failed to set root label (may already be correct)"
+fi
+
 echo_debug "Mounting updated partitions for configuration ..."
 if is_mounted "$INACTIVE_BOOT"; then
     echo_error "$INACTIVE_BOOT is already mounted by another process. Cannot continue safely."
