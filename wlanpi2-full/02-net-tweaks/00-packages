@@ -5,7 +5,6 @@ iperf3
 wavemon
 firmware-atheros
 firmware-brcm80211
-firmware-mediatek
 firmware-misc-nonfree
 firmware-realtek
 raspberrypi-net-mods
