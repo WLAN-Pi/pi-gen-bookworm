@@ -11,10 +11,14 @@ CHEOF
 on_chroot <<CHEOF
         echo "Add packagecloud wlanpi/main repository"
         curl -s https://packagecloud.io/install/repositories/wlanpi/main/script.deb.sh | bash
+        echo "Add packagecloud wlanpi/main bookworm fallback (for packages not yet published for trixie)"
+        curl -s https://packagecloud.io/install/repositories/wlanpi/main/script.deb.sh | os=debian dist=bookworm bash
 
         if [ "${INCLUDE_PACKAGECLOUD_DEV}" = "1" ]; then
                 echo "Add packagecloud wlanpi/dev repository"
                 curl -s https://packagecloud.io/install/repositories/wlanpi/dev/script.deb.sh | bash
+                echo "Add packagecloud wlanpi/dev bookworm fallback"
+                curl -s https://packagecloud.io/install/repositories/wlanpi/dev/script.deb.sh | os=debian dist=bookworm bash
         else
                 echo "Skipping add packagecloud wlanpi/dev repository - see GitHub Actions workflow inputs"
         fi

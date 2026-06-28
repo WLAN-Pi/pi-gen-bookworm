@@ -36,9 +36,7 @@ on_chroot <<CHEOF
 	update-pciids
 
 	# Install wireless-regdb
-	wget -O /tmp/wireless-regdb.deb http://ftp.us.debian.org/debian/pool/main/w/wireless-regdb/wireless-regdb_2025.10.07-1_all.deb
-	dpkg -i /tmp/wireless-regdb.deb
-	rm -f /tmp/wireless-regdb.deb
+	apt-get install -y wireless-regdb
 	update-alternatives --set regulatory.db /lib/firmware/regulatory.db-upstream
 
 	# Automatically reboot after 5 seconds if a kernel panic occurs
