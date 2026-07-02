@@ -1,0 +1,15 @@
+wlanpi-bluetooth
+wlanpi-common
+#wlanpi-core (installed via 00-run.sh from local build)
+#wlanpi-fpms (installed via 00-run.sh from local build)
+#wlanpi-grafana (needs Grafana repo configured - see Phase 6 notes)
+wlanpi-hotspot
+#wlanpi-hwtest (not in packagecloud repo)
+wlanpi-librespeed-cli
+wlanpi-misc-firmware
+wlanpi-profiler
+wlanpi-server
+wlanpi-usb-ethernet
+wlanpi-wconsole
+wlanpi-webui
+wlanpi-wipry

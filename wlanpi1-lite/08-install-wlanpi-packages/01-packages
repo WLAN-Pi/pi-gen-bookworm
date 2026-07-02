@@ -1,0 +1,9 @@
+wlanpi-bluetooth
+wlanpi-common
+#wlanpi-core (installed via 00-run.sh from local build)
+#wlanpi-hwtest (not in packagecloud repo)
+wlanpi-librespeed-cli
+wlanpi-misc-firmware
+wlanpi-profiler
+wlanpi-webui
+wlanpi-wipry
