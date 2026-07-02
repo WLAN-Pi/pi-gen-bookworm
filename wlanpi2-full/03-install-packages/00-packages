@@ -20,3 +20,16 @@ lm-sensors
 avahi-utils
 mtr-tiny
 tftpd-hpa
+apt-transport-https
+cockpit-navigator
+dhcping
+hostapd
+dirmngr
+gnupg
+#ifplugd (removed in Trixie; handled by systemd-networkd)
+#isc-dhcp-server (removed in Trixie; migrate to kea-dhcp4-server)
+nginx-full
+ser2net
+tftp-hpa
+wireshark
+#sntp (no standalone package in Trixie; use ntpsec or chrony)
