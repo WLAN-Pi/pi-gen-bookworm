@@ -3,7 +3,8 @@
 # Some settings may impact device functionality. See link above for details
 
 # Uncomment some or all of these to enable the optional hardware interfaces
-#dtparam=i2c_arm=on
+# i2c_arm required for WLAN Pi Pro RTC + battery fuel gauge (and M4+ EEPROM)
+dtparam=i2c_arm=on
 #dtparam=i2s=on
 dtparam=spi=on
 
@@ -18,6 +19,11 @@ camera_auto_detect=1
 
 # Automatically load overlays for detected DSI displays
 display_auto_detect=1
+
+# Enable DRM VC4 V3D driver. Also loads snd-soc-hdmi-codec, which
+# wlanpi-model relies on to identify the M4 (lsmod | grep hdmi)
+dtoverlay=vc4-kms-v3d
+max_framebuffers=2
 
 # Use firmware framebuffer for display across all platforms
 disable_fw_kms_setup=1
@@ -41,6 +47,11 @@ kernel=wlanpi-kernel8.img
 otg_mode=1
 kernel=wlanpi-kernel8.img
 dtoverlay=dwc2,dr_mode=host
+
+# WLAN Pi Pro hardware (toggled per-platform by wlanpi-config-at-startup.sh)
+dtoverlay=gpio-fan,gpiopin=26,temp=70000
+dtoverlay=i2c-rtc,pcf85063a,addr=0x51
+dtoverlay=battery_gauge
 
 [pi5]
 kernel=wlanpi-kernel_2712.img
