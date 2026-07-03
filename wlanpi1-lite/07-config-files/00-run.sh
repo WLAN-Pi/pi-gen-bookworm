@@ -71,3 +71,6 @@ copy_overlay /etc/avahi/avahi-daemon.conf -o root -g root -m 644
 
 # Copy config file: wlanpi-state (WLAN Pi Mode)
 copy_overlay /etc/wlanpi-state -o root -g root -m 644
+
+# Make /dev/vcio accessible to the video group (not covered by raspberrypi-sys-mods 10-vc.rules)
+copy_overlay /etc/udev/rules.d/99-vcio.rules -o root -g root -m 644
