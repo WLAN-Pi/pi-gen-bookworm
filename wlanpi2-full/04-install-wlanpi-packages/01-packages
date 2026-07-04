@@ -11,5 +11,5 @@ wlanpi-profiler
 wlanpi-server
 wlanpi-usb-ethernet
 wlanpi-wconsole
-wlanpi-webui
+#wlanpi-webui (installed via 00-run.sh from local build)
 wlanpi-wipry

@@ -5,5 +5,5 @@ wlanpi-common
 wlanpi-librespeed-cli
 wlanpi-misc-firmware
 wlanpi-profiler
-wlanpi-webui
+#wlanpi-webui (installed via 00-run.sh from local build)
 wlanpi-wipry

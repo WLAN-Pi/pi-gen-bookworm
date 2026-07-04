@@ -1,0 +1,8 @@
+# The wlanpi packagecloud repos are configured twice: the native trixie dist
+# and a bookworm fallback for packages not yet published for trixie. Pin the
+# bookworm suite below the default 500 so a trixie-built package always wins
+# when one exists (some packages carry identical version strings in both
+# dists), while bookworm-only packages remain installable as a fallback.
+Package: *
+Pin: release n=bookworm
+Pin-Priority: 400
