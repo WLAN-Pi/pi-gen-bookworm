@@ -45,8 +45,8 @@ installs them in dependency order (wlanpi-core first, dependents after),
 
 | Package       | Local deb                                                        | Variants   |
 |---------------|------------------------------------------------------------------|------------|
-| wlanpi-core   | `~/source/wlanpi-core/wlanpi-core_2.1.10-2_arm64.deb`            | lite, full |
-| wlanpi-common | `~/source/wlanpi-common/wlanpi-common_1.1.43+trixie2_arm64.deb`  | lite, full |
+| wlanpi-core   | `~/source/wlanpi-core/wlanpi-core_2.1.11-1~pr131_arm64.deb` (experimental PR 131 build) | lite, full |
+| wlanpi-common | `~/source/wlanpi-common/wlanpi-common_1.1.43+trixie3_arm64.deb`  | lite, full |
 | wlanpi-webui  | `~/source/wlanpi-webui/wlanpi-webui_1.4.0-2_arm64.deb`           | lite, full |
 | wlanpi-fpms   | `~/source/wlanpi-fpms/wlanpi-fpms_1.4.14_arm64_trixie.deb`       | full only  |
 
@@ -67,13 +67,14 @@ installs them in dependency order (wlanpi-core first, dependents after),
    ```bash
    cp /home/jakesnyder/source/<pkg>/<pkg>_<ver>_arm64.deb "${ROOTFS_DIR}/tmp/"
    ...
-   apt-get install -y --allow-downgrades /tmp/<pkg>_<ver>_arm64.deb
+   apt-get install -y --reinstall --allow-downgrades /tmp/<pkg>_<ver>_arm64.deb
    ...
    rm -f ... /tmp/<pkg>_<ver>_arm64.deb
    ```
 
    Place the `apt-get install` line **after** wlanpi-core if the package
-   depends on it. Always pass `--allow-downgrades` (see gotcha below).
+   depends on it. Always pass `--reinstall --allow-downgrades` (see gotcha
+   below).
 
 3. **Comment the package out of the `01-packages` list** in both variants so
    apt doesn't fight the sideload, with the standard annotation:
@@ -154,7 +155,10 @@ E: Packages were downgraded and -y was used without --allow-downgrades.
 ```
 
 All local-deb installs in this repo therefore use
-`apt-get install -y --allow-downgrades`, which also guarantees the local deb
-wins if packagecloud later publishes a higher (but still Bookworm-built)
-version. A local deb with **no** repo counterpart (e.g. the kernel) is
-unaffected — apt reports "already the newest version" and skips it.
+`apt-get install -y --reinstall --allow-downgrades`. `--allow-downgrades`
+also guarantees the local deb wins if packagecloud later publishes a higher
+(but still Bookworm-built) version. `--reinstall` covers the opposite case: a
+deb **rebuilt without a version bump** (same filename, new content). Without
+it, an incremental rebuild sees the version already installed in the work
+rootfs, reports "already the newest version", and silently keeps the stale
+files from the previous build.
