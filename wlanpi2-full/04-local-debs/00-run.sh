@@ -23,7 +23,7 @@ on_chroot <<- 'EOF'
 	for deb in /tmp/*.deb; do
 		[ -f "$deb" ] || continue
 		echo "Installing local deb: $(basename "$deb")"
-		apt-get install -y --allow-downgrades "$deb"
+		apt-get install -y --reinstall --allow-downgrades "$deb"
 		rm -f "$deb"
 	done
 EOF
