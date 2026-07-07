@@ -18,5 +18,8 @@ echo "root:root" | chpasswd
 
 # Add user to adm group for journalctl access
 usermod -aG adm ${FIRST_USER_NAME}
+
+# Load i2c module at boot
+echo "i2c-dev" >> /etc/modules
 EOF
 

@@ -33,3 +33,4 @@ ser2net
 tftp-hpa
 wireshark
 #sntp (no standalone package in Trixie; use ntpsec or chrony)
+iftop
