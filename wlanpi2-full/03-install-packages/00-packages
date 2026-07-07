@@ -26,6 +26,7 @@ dhcping
 hostapd
 dirmngr
 gnupg
+ifupdown-ng
 #ifplugd (removed in Trixie; handled by systemd-networkd)
 #isc-dhcp-server (removed in Trixie; migrate to kea-dhcp4-server)
 nginx-full
