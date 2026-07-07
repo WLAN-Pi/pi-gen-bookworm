@@ -36,7 +36,9 @@ on_chroot <<CHEOF
 	update-pciids
 
 	# Install wireless-regdb
-	wget -O /tmp/wireless-regdb.deb http://ftp.us.debian.org/debian/pool/main/w/wireless-regdb/wireless-regdb_2025.10.07-1_all.deb
+	# apt-get install -y wireless-regdb
+	# Install newer version than what is in trixies package archive
+	wget -O /tmp/wireless-regdb.deb http://ftp.us.debian.org/debian/pool/main/w/wireless-regdb/wireless-regdb_2026.05.30-1_all.deb
 	dpkg -i /tmp/wireless-regdb.deb
 	rm -f /tmp/wireless-regdb.deb
 	update-alternatives --set regulatory.db /lib/firmware/regulatory.db-upstream
@@ -73,3 +75,6 @@ copy_overlay /etc/avahi/avahi-daemon.conf -o root -g root -m 644
 
 # Copy config file: wlanpi-state (WLAN Pi Mode)
 copy_overlay /etc/wlanpi-state -o root -g root -m 644
+
+# Make /dev/vcio accessible to the video group (not covered by raspberrypi-sys-mods 10-vc.rules)
+copy_overlay /etc/udev/rules.d/99-vcio.rules -o root -g root -m 644

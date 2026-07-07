@@ -7,8 +7,10 @@ dphys-swapfile
 ethtool
 fake-hwclock
 file
+jq
 less
 libpam-chksshpwd
+lshw
 parted
 pciutils
 polkitd
@@ -16,6 +18,7 @@ python-is-python3
 raspberrypi-sys-mods
 raspi-config
 raspi-utils
+rng-tools
 rpi-eeprom
 rpi-update
 rsync
@@ -25,6 +28,7 @@ ssh-import-id
 sudo
 tmux
 unzip
+usbmuxd
 usbutils
 vim
 zip

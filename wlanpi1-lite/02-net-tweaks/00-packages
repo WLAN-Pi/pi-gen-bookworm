@@ -1,3 +1,8 @@
-netbase
+bind9-dnsutils
 iperf
+iputils-arping
+iw
+netbase
+net-tools
 wavemon
+wireless-tools

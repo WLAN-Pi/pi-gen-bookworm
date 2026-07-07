@@ -8,3 +8,4 @@ SKIP_IMAGES
 .pc
 *-pc
 buildlogs.txt
+local-debs/
