@@ -10,9 +10,9 @@
 > wlanpi-webui, wlanpi-fpms) must be **Trixie builds** to work: a Bookworm
 > build embeds `/opt/<pkg>/lib/python3.11/` with cp311 extensions but its
 > `bin/python3` resolves to the system Python 3.13, so the service fails at
-> import time even though the package installs cleanly. Until packagecloud
-> publishes Trixie builds of those packages, images from this branch will
-> install them but the services will not start.
+> import time even though the package installs cleanly. Until Trixie builds
+> are published to packagecloud for builds of those packages, images from this
+> branch will install them but the services will not start.
 
 ## The `local-debs/` directory
 

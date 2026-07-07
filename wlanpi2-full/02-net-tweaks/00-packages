@@ -1,4 +1,4 @@
-dnsutils
+bind9-dnsutils
 firmware-atheros
 firmware-brcm80211
 firmware-misc-nonfree
