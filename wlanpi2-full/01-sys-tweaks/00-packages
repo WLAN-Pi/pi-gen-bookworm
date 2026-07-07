@@ -54,6 +54,7 @@ ssh
 ssh-import-id
 strace
 sudo
+tio
 tmux
 udisks2
 unzip
