@@ -11,11 +11,7 @@ copy_overlay /lib/systemd/system/iperf3.service -o root -g root -m 644
 copy_overlay /lib/systemd/system/iperf2.service -o root -g root -m 644
 copy_overlay /lib/systemd/system/iperf2-udp.service -o root -g root -m 644
 
-# Setup nginx config
-copy_overlay /etc/nginx/nginx.conf -o root -g root -m 644
-
 on_chroot <<CHEOF
 	systemctl enable iperf3
 	systemctl enable cockpit.socket
-	systemctl enable nginx
 CHEOF
