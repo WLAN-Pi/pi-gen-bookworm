@@ -68,6 +68,8 @@ EOF
 			log "Begin ${SUB_STAGE_DIR}/${i}-run.sh"
 			./${i}-run.sh
 			log "End ${SUB_STAGE_DIR}/${i}-run.sh"
+		elif [ -f ${i}-run.sh ]; then
+			log "Skip ${SUB_STAGE_DIR}/${i}-run.sh (not executable)"
 		fi
 		if [ -f ${i}-run-chroot.sh ]; then
 			log "Begin ${SUB_STAGE_DIR}/${i}-run-chroot.sh"
@@ -378,6 +380,7 @@ if [ "$SKIP_FULL_IMAGE" = "true" ]; then
             FILTERED_STAGE_LIST+="$stage"
         fi
     done
+    STAGE_LIST="$FILTERED_STAGE_LIST"
 fi
 export STAGE_LIST
 
