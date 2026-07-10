@@ -7,4 +7,6 @@ wlanpi-common
 wlanpi-wipry
 wlanpi-librespeed-cli
 wlanpi-misc-firmware
-wlanpi-usb-ethernet
+# wlanpi-usb-ethernet is intentionally NOT installed in the full image.
+# It configures the USB Ethernet gadget for the WLAN Pi Go only, and is
+# installed by the wlanpi1-lite stage (06-sys-conf).
