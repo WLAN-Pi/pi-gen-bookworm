@@ -13,6 +13,10 @@ fi
 if hash hardlink 2>/dev/null; then
 	hardlink -t /usr/share/doc
 fi
+if [ -f /usr/lib/systemd/system/apt-listchanges.service ]; then
+	python3 -m apt_listchanges.populate_database --profile apt
+	systemctl disable apt-listchanges.timer
+fi
 EOF
 
 if [ -f "${ROOTFS_DIR}/etc/initramfs-tools/update-initramfs.conf" ]; then
@@ -23,8 +27,6 @@ fi
 if [ -d "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.config" ]; then
 	chmod 700 "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.config"
 fi
-
-rm -f "${ROOTFS_DIR}/usr/bin/qemu-arm-static"
 
 if [ "${USE_QEMU}" != "1" ]; then
 	if [ -e "${ROOTFS_DIR}/etc/ld.so.preload.disabled" ]; then
