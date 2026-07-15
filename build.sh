@@ -195,7 +195,7 @@ export PI_GEN_REPO=${PI_GEN_REPO:-https://github.com/WLAN-Pi/pi-gen-bookworm/}
 export PI_GEN_RELEASE=${PI_GEN_RELEASE:-WLAN Pi}
 
 export ARCH=arm64
-export RELEASE=${RELEASE:-bookworm} # Don't forget to update stage0/prerun.sh
+export RELEASE=${RELEASE:-trixie} # Don't forget to update stage0/prerun.sh
 export IMG_NAME="${IMG_NAME:-wlanpi-os-$RELEASE-$ARCH}"
 
 export WLANPI_BASE_VERSION=${WLANPI_BASE_VERSION:-$(date '+%y.%m')}
