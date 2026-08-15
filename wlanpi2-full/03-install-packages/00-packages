@@ -5,7 +5,7 @@ wget
 avahi-daemon
 ufw
 nftables
-#scandump
+scandump
 tcpdump
 tshark
 cockpit
