@@ -48,6 +48,10 @@ otg_mode=1
 kernel=wlanpi-kernel8.img
 dtoverlay=dwc2,dr_mode=host
 
+# Disable CM4's Wi-Fi and BT radio if they are present
+dtoverlay=disable-wifi
+dtoverlay=disable-bt
+
 # WLAN Pi Pro hardware (toggled per-platform by wlanpi-config-at-startup.sh)
 dtoverlay=gpio-fan,gpiopin=26,temp=70000
 dtoverlay=i2c-rtc,pcf85063a,addr=0x51
