@@ -1,5 +1,9 @@
 #!/bin/bash -e
 
+# /boot/firmware exists from 00-boot-files, but overlays/ is created by the
+# kernel package postinst. mkdir so the dtbo copy works even though we no
+# longer apt-install the kernel in 00-packages (that would pull 7.1.10).
+mkdir -p "${ROOTFS_DIR}/boot/firmware/overlays"
 install -m 644 files/max3421-hcd.dtbo "${ROOTFS_DIR}/boot/firmware/overlays/"
 
 # Pin 6.12.98-v8-wlanpi+-20260730 (wlanpi-kernel PR #31) from GitHub.
