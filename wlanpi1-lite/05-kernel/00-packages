@@ -1,1 +1,6 @@
-wlanpi-kernel-bookworm-v8
+# Do not apt-install wlanpi-kernel-bookworm-v8 here.
+# packagecloud wlanpi/dev debian/bookworm currently publishes
+# 7.1.10-v8-wlanpi+-20260828, whose Debian version is greater than 6.12.x,
+# so an unpinned install would pull 7.1.10. Pin and hold 6.12.98
+# (wlanpi-kernel PR #31) from the GitHub pre-release in 00-run.sh instead.
+# wlanpi-kernel-bookworm-v8
