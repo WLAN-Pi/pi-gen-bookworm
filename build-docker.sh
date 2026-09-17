@@ -9,6 +9,11 @@ BUILD_OPTS="$*"
 # Allow user to override docker command
 DOCKER=${DOCKER:-docker}
 
+if ! command -v ${DOCKER} >/dev/null 2>&1; then
+	echo "Error: '${DOCKER}' not found. Install Docker or set DOCKER=<path>."
+	exit 1
+fi
+
 # Ensure that default docker command is not set up in rootless mode
 if \
   ! ${DOCKER} ps    >/dev/null 2>&1 || \
