@@ -310,28 +310,13 @@ fi
 mkdir -p "${WORK_DIR}"
 trap term EXIT INT TERM
 
-dependencies_check "${BASE_DIR}/depends"
+dependencies_check "${BASE_DIR}/depends-arm64"
 
-
-PAGESIZE=$(getconf PAGESIZE)
-if [ "$ARCH" == "armhf" ] && [ "$PAGESIZE" != "4096" ]; then
-	echo
-	echo "ERROR: Building an $ARCH image requires a kernel with a 4k page size (current: $PAGESIZE)"
-	echo "On Raspberry Pi OS (64-bit), you can switch to a suitable kernel by adding the following to /boot/firmware/config.txt and rebooting:"
-	echo
-	echo "kernel=kernel8.img"
-	echo "initramfs initramfs8 followkernel"
-	echo
+echo "Verifying native arm64 support..."
+if ! arch-test -n arm64; then
+	echo "ERROR: Native arm64 execution is not supported on this system."
+	echo "This script requires a native arm64 host."
 	exit 1
-fi
-
-echo "Checking native $ARCH executable support..."
-if ! arch-test -n "$ARCH"; then
-	echo "WARNING: Only a native build environment is supported. Checking emulated support..."
-	if ! arch-test "$ARCH"; then
-		echo "No fallback mechanism found. Ensure your OS has binfmt_misc support enabled and configured."
-		exit 1
-	fi
 fi
 
 #check username is valid
@@ -353,6 +338,7 @@ fi
 
 if [[ -n "${APT_PROXY}" ]] && ! curl --silent "${APT_PROXY}" >/dev/null ; then
 	echo "Could not reach APT_PROXY server: ${APT_PROXY}"
+	echo "Start apt-cacher-ng, or unset APT_PROXY and try again."
 	exit 1
 fi
 
@@ -403,13 +389,11 @@ for EXPORT_DIR in ${EXPORT_DIRS}; do
 	source "${EXPORT_DIR}/EXPORT_IMAGE"
 	EXPORT_ROOTFS_DIR=${WORK_DIR}/$(basename "${EXPORT_DIR}")/rootfs
 	run_stage
-	if [ "${USE_QEMU}" != "1" ]; then
-		if [ -e "${EXPORT_DIR}/EXPORT_NOOBS" ]; then
-			# shellcheck source=/dev/null
-			source "${EXPORT_DIR}/EXPORT_NOOBS"
-			STAGE_DIR="${BASE_DIR}/export-noobs"
-			run_stage
-		fi
+	if [ -e "${EXPORT_DIR}/EXPORT_NOOBS" ]; then
+		# shellcheck source=/dev/null
+		source "${EXPORT_DIR}/EXPORT_NOOBS"
+		STAGE_DIR="${BASE_DIR}/export-noobs"
+		run_stage
 	fi
 done
 
