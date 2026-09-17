@@ -15,7 +15,7 @@ on_chroot << EOF
 echo "=== Adding Kismet repository ==="
 # Add Kismet repository for trixie (using official installation method)
 wget -O - https://www.kismetwireless.net/repos/kismet-release.gpg.key --quiet | gpg --dearmor | tee /usr/share/keyrings/kismet-archive-keyring.gpg >/dev/null
-echo 'deb [signed-by=/usr/share/keyrings/kismet-archive-keyring.gpg] https://www.kismetwireless.net/repos/apt/release/trixie trixie main' | tee /etc/apt/sources.list.d/kismet.list >/dev/null
+echo 'deb [arch=arm64 signed-by=/usr/share/keyrings/kismet-archive-keyring.gpg] https://www.kismetwireless.net/repos/apt/release/trixie trixie main' | tee /etc/apt/sources.list.d/kismet.list >/dev/null
 apt update
 echo "=== Kismet repository added ==="
 
