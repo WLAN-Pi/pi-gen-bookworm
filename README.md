@@ -1,6 +1,6 @@
 # WLAN Pi OS builder
 
-Tools to build WLAN Pi OS images for trixie, based on
+Tools to build WLAN Pi OS images, based on
 [upstream pi-gen](PI-GEN.md).
 
 ## Get the images
