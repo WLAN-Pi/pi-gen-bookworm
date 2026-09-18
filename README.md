@@ -20,13 +20,19 @@ Prerequisites:
 The repo ships a checked-in `config` that builds both images
 (`STAGE_LIST="wlanpi1-lite wlanpi2-full"`).
 
-Native build:
+Native build (requires an arm64 host, such as an arm64 Linux machine or
+the `ubuntu-24.04-arm` CI runner):
 
 ```bash
 sudo ./build.sh
 ```
 
-Docker build (manages the build container for you):
+`build.sh` verifies native arm64 execution with `arch-test` and exits
+with an error on other hosts.
+
+Docker build (works on other host architectures, such as x86_64, through
+`qemu-user-static` emulation in the build container; slower than a
+native build):
 
 ```bash
 ./build-docker.sh
