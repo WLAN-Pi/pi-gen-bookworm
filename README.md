@@ -1,5 +1,10 @@
 # WLAN Pi OS builder
 
+> **This repository is archived.** WLAN Pi OS images are now built in
+> [WLAN-Pi/pi-gen](https://github.com/WLAN-Pi/pi-gen), branch `trixie64`.
+> Download images from that repo's
+> [Releases](https://github.com/WLAN-Pi/pi-gen/releases) page.
+
 Tools to build WLAN Pi OS images, based on
 [upstream pi-gen](PI-GEN.md).
 
