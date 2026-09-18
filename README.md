@@ -49,6 +49,9 @@ Builds are incremental: stage state persists under `work/wlanpi-os/`
 and re-runs reuse it. If a stage edit appears to do nothing, remove the
 `work/` directory to force a full rebuild.
 
+On Fedora hosts, `export-image` prints SELinux and lowercase-label mount
+warnings; both are benign.
+
 ## How this repo works
 
 - [Versioning](docs/VERSIONING.md): image versions (`YY.MM` plus codename)
