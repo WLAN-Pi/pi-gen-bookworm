@@ -84,3 +84,10 @@ Examples:
 4. Patch releases: `YY.MM.point-CODENAME`
    - For emergency fixes or minor updates
    - Example: 25.07.1-theanine
+
+## On-device version string
+
+`scripts/common:update_issue` writes the version to `/etc/rpi-issue`, which is also surfaced as the `Version` field in the release `.info` file. Release candidates (`-rc.`) are written as the **base** version `YY.MM` (the `-rc.sequence` and codename are stripped), while dev, final, and point builds write the full `YY.MM[-type.sequence]-CODENAME`.
+
+- `26.10-rc.1-Cortado` → `.info` `Version 26.10`
+- `26.10-Cortado` → `.info` `Version 26.10-Cortado`
