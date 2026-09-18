@@ -42,7 +42,7 @@ on:
         description: '🔨 BUILD: lite image only'
         required: false
         type: boolean
-        default: false
+        default: true
       
       ab_partition:
         description: '🔨 BUILD: post process lite image for A/B partitioning'
