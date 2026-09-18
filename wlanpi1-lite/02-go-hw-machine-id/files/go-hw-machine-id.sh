@@ -209,6 +209,9 @@ if [ -z "$SERIAL_NUMBER" ]; then
             fi
         fi
 
+        # Field names document the device serial CSV protocol. `serial` is
+        # the 13th field, so every field must be consumed even when unused.
+        # shellcheck disable=SC2034
         IFS=',' read -r product version candidate hardware error tested rfuA rfuB timeSinceStart usbVoltage rfuC vBatt serial <<< "$line"
         if [[ -n "$product" ]]; then
             serial=$(echo "$serial" | tr -d '\r\n')

@@ -126,10 +126,7 @@ if [[ "${binfmt_misc_required}" == "1" ]]; then
   fi
   if ! grep -q "^interpreter ${qemu_arm}" /proc/sys/fs/binfmt_misc/qemu-aarch64* ; then
     # Register qemu-aarch64 for binfmt_misc
-    reg="echo ':qemu-aarch64-rpi:M::"\
-"\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\xb7\x00:"\
-"\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:"\
-"${qemu_arm}:F' > /proc/sys/fs/binfmt_misc/register"
+    reg="echo ':qemu-aarch64-rpi:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\xb7\x00:\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:${qemu_arm}:F' > /proc/sys/fs/binfmt_misc/register"
     echo "Registering qemu-aarch64 for binfmt_misc..."
     sudo bash -c "${reg}" 2>/dev/null || true
   fi

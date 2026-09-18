@@ -50,6 +50,8 @@ BOOT_DEV="${LOOP_DEV}p1"
 ROOT_DEV="${LOOP_DEV}p2"
 
 ROOT_FEATURES="^huge_file"
+# Kept as a single-item loop for parity with upstream pi-gen.
+# shellcheck disable=SC2043
 for FEATURE in 64bit; do
 if grep -q "$FEATURE" /etc/mke2fs.conf; then
 	ROOT_FEATURES="^$FEATURE,$ROOT_FEATURES"
