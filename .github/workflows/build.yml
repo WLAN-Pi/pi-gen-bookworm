@@ -842,10 +842,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Create release tag at built commit
+        run: |
+          git tag -f "${{ env.git_tag }}" "${{ github.sha }}"
+          git push origin "refs/tags/${{ env.git_tag }}" --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create GitHub pre-release
         run: |
           gh release create ${{ env.git_tag }} \
-            --target ${{ github.sha }} \
             --prerelease \
             --title "WLAN Pi OS ${{ needs.build-prep.outputs.full_version }} ${{ env.BUILD_TYPE_LABEL }}" \
             --notes-file ./release-notes/release-notes.log \
