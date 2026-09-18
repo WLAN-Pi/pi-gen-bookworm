@@ -245,6 +245,9 @@ export SCRIPT_DIR="${BASE_DIR}/scripts"
 export WORK_DIR="${WORK_DIR:-"${BASE_DIR}/work/${IMG_NAME}"}"
 export DEPLOY_DIR=${DEPLOY_DIR:-"${BASE_DIR}/deploy"}
 
+echo "Builds are incremental: stage state persists in ${WORK_DIR} and re-runs reuse it."
+echo "If a stage edit appears to do nothing, remove ${WORK_DIR} (or use SKIP files) to force a rebuild."
+
 # DEPLOY_ZIP was deprecated in favor of DEPLOY_COMPRESSION
 # This preserve the old behavior with DEPLOY_ZIP=0 where no archive was created
 if [ -z "${DEPLOY_COMPRESSION}" ] && [ "${DEPLOY_ZIP:-1}" = "0" ]; then
