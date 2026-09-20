@@ -70,6 +70,7 @@ on:
         default: false
 permissions:
   contents: write
+  actions: read
 jobs:
   build-prep:
     runs-on: ubuntu-24.04-arm
