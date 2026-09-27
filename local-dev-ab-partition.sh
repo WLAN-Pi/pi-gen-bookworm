@@ -81,8 +81,8 @@ sha256sum "$OUTPUT_BASE.gz" > "$OUTPUT_BASE.gz.sha256"
 echo "Moving to deploy directory"
 sudo mv "$OUTPUT_BASE.gz" "$DEPLOY_DIR/"
 sudo mv "$OUTPUT_BASE.gz.sha256" "$DEPLOY_DIR/"
-sudo chown $(id -u):$(id -g) "$DEPLOY_DIR/$OUTPUT_BASE.gz"
-sudo chown $(id -u):$(id -g) "$DEPLOY_DIR/$OUTPUT_BASE.gz.sha256"
+sudo chown "$(id -u):$(id -g)" "$DEPLOY_DIR/$OUTPUT_BASE.gz"
+sudo chown "$(id -u):$(id -g)" "$DEPLOY_DIR/$OUTPUT_BASE.gz.sha256"
 
 rm -f "original.img"
 
