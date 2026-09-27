@@ -286,11 +286,7 @@ jobs:
           SKIP_FULL_IMAGE: ${{ github.event.inputs.skip_full_image }}
           INCLUDE_PACKAGECLOUD_DEV: ${{ needs.build-prep.outputs.include_packagecloud_dev }}
         run: |
-          if [ "$SKIP_FULL_IMAGE" = "true" ]; then
-            echo "Skipping full image build as requested"
-            mkdir -p wlanpi2-full
-            touch wlanpi2-full/SKIP
-          fi
+          set -o pipefail
           sudo -E ./build.sh 2>&1 | tee build_output.log
 
           echo "========== BUILD OUTPUT FILES =========="
