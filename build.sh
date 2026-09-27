@@ -378,6 +378,7 @@ if [ "$SKIP_FULL_IMAGE" = "true" ]; then
             FILTERED_STAGE_LIST+="$stage"
         fi
     done
+    STAGE_LIST="$FILTERED_STAGE_LIST"
 fi
 export STAGE_LIST
 
