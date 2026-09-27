@@ -209,7 +209,7 @@ if [ -z "$SERIAL_NUMBER" ]; then
             fi
         fi
 
-        IFS=',' read -r product version candidate hardware error tested rfuA rfuB timeSinceStart usbVoltage rfuC vBatt serial <<< "$line"
+        IFS=',' read -r product version candidate hardware _ _ _ _ _ _ _ _ serial <<< "$line"
         if [[ -n "$product" ]]; then
             serial=$(echo "$serial" | tr -d '\r\n')
             log "Parsed device data: product=$product, version=$version, serial=$serial"

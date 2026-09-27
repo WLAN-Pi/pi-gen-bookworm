@@ -50,11 +50,9 @@ BOOT_DEV="${LOOP_DEV}p1"
 ROOT_DEV="${LOOP_DEV}p2"
 
 ROOT_FEATURES="^huge_file"
-for FEATURE in 64bit; do
-if grep -q "$FEATURE" /etc/mke2fs.conf; then
-	ROOT_FEATURES="^$FEATURE,$ROOT_FEATURES"
+if grep -q 64bit /etc/mke2fs.conf; then
+	ROOT_FEATURES="^64bit,$ROOT_FEATURES"
 fi
-done
 
 if [ "$BOOT_SIZE" -lt 134742016 ]; then
 	FAT_SIZE=16
