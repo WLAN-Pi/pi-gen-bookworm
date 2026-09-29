@@ -38,12 +38,6 @@ on:
         required: false
         type: string
 
-      skip_full_image:
-        description: '🔨 BUILD: lite image only'
-        required: false
-        type: boolean
-        default: true
-      
       ab_partition:
         description: '🔨 BUILD: post process lite image for A/B partitioning'
         required: false
@@ -272,7 +266,6 @@ jobs:
           echo "WLANPI_VERSION: ${{ needs.build-prep.outputs.version }}"
           echo "WLANPI_CODENAME: ${{ needs.build-prep.outputs.codename }}"
           echo "WLANPI_FULL_VERSION: ${{ needs.build-prep.outputs.full_version }}"
-          echo "SKIP_FULL_IMAGE: ${{ github.event.inputs.skip_full_image }}"
           echo "INCLUDE_PACKAGECLOUD_DEV: ${{ needs.build-prep.outputs.include_packagecloud_dev }}"
 
       - name: Sudo build images
@@ -283,7 +276,8 @@ jobs:
           WLANPI_BASE_VERSION: ${{ needs.build-prep.outputs.base_version }}
           WLANPI_CODENAME: ${{ needs.build-prep.outputs.codename }}
           WLANPI_FULL_VERSION: ${{ needs.build-prep.outputs.full_version }}
-          SKIP_FULL_IMAGE: ${{ github.event.inputs.skip_full_image }}
+          # Bookworm CI builds lite only; wlanpi2-full stays for local builds
+          SKIP_FULL_IMAGE: 'true'
           INCLUDE_PACKAGECLOUD_DEV: ${{ needs.build-prep.outputs.include_packagecloud_dev }}
         run: |
           set -o pipefail
@@ -319,21 +313,13 @@ jobs:
               BASE=$(basename "$IMG")
               if [[ "$BASE" == *"-lite.img.gz" ]]; then
                 TYPE="lite"
-              elif [[ "$BASE" == *"-full.img.gz" ]]; then
-                TYPE="full"
               else
-                echo "WARNING: image wasn't lite or full - $BASE"
+                echo "WARNING: image wasn't lite - $BASE"
                 continue
               fi
 
-              INFO_FILE=""
-              if [[ "$TYPE" == "lite" ]]; then
-                INFO_FILE=$(find deploy -name "*lite*.info" -print -quit)
-                echo "Lite info file: $INFO_FILE"
-              elif [[ "$TYPE" == "full" ]]; then
-                INFO_FILE=$(find deploy -name "*full*.info" -print -quit)
-                echo "Full info file: $INFO_FILE"
-              fi
+              INFO_FILE=$(find deploy -name "*lite*.info" -print -quit)
+              echo "Lite info file: $INFO_FILE"
 
               if [ -n "$INFO_FILE" ] && [ -f "$INFO_FILE" ]; then
                 NEW_INFO="wlanpi-os-$VERSION-$TYPE.info"
@@ -343,12 +329,7 @@ jobs:
                 echo "WARNING: No matching info file found for $TYPE image"
               fi
               
-              SBOM_FILE=""
-              if [[ "$TYPE" == "lite" ]]; then
-                SBOM_FILE=$(find deploy -name "*lite*.sbom.xz" -print -quit)
-              elif [[ "$TYPE" == "full" ]]; then
-                SBOM_FILE=$(find deploy -name "*full*.sbom.xz" -print -quit)
-              fi
+              SBOM_FILE=$(find deploy -name "*lite*.sbom.xz" -print -quit)
               
               if [ -n "$SBOM_FILE" ] && [ -f "$SBOM_FILE" ]; then
                 NEW_SBOM="wlanpi-os-$VERSION-$TYPE.sbom.xz"
@@ -395,22 +376,6 @@ jobs:
             popd
           fi
 
-          FULL=$(find processed -name "wlanpi-os*full*.img.gz" -print -quit)
-          if [ -n "$FULL" ]; then
-            echo "full image file found: $FULL"
-            FULL_BASE=$(basename "$FULL")
-            FULL_ZIP_NAME="${FULL_BASE%.img.gz}.zip"
-            
-            pushd processed
-            zip "../zips/$FULL_ZIP_NAME" "$(basename "$FULL")"
-            echo "Zip creation exit code: $?"
-            popd
-            
-            pushd zips
-            sha256sum "$FULL_ZIP_NAME" > "$FULL_ZIP_NAME.sha256"
-            popd
-          fi
-
           echo "Checking deploy directory permissions before creating"
           ls -la deploy 2>/dev/null || echo "No deploy directory found yet"
 
@@ -434,83 +399,6 @@ jobs:
 
           echo "Created these zip files for pre-release:"
           ls -la zips/
-
-      - name: Compare full and lite info files
-        if: ${{ github.event.inputs.skip_full_image != 'true' }}
-        run: |
-          echo "Comparing full and lite package differences ..."
-          
-          FULL_INFO=$(find processed -name "*full*.info" -print -quit)
-          LITE_INFO=$(find processed -name "*lite*.info" -print -quit)
-
-          if [ -z "$LITE_INFO" ] || [ -z "$FULL_INFO" ]; then
-            echo "Error: could not find both info files for comparison"
-            echo "Full info: $FULL_INFO"
-            echo "Lite info: $LITE_INFO"
-            exit 0
-          fi
-
-          echo "Extracting package lists ..."
-          FULL_PKGS=$(grep -A 9999 "^Packages:" "$FULL_INFO" | grep "^ii " | awk '{print $2}' | sort)
-          LITE_PKGS=$(grep -A 9999 "^Packages:" "$LITE_INFO" | grep "^ii " | awk '{print $2}' | sort)
-          
-          FULL_COUNT=$(echo "$FULL_PKGS" | wc -l)
-          LITE_COUNT=$(echo "$LITE_PKGS" | wc -l)
-          
-          echo "Full image contains $FULL_COUNT packages"
-          echo "Lite image contains $LITE_COUNT packages"
-          echo "Difference: $((FULL_COUNT - LITE_COUNT)) packages"
-          
-          ONLY_IN_FULL=$(comm -13 <(echo "$LITE_PKGS") <(echo "$FULL_PKGS"))
-          ONLY_IN_LITE=$(comm -23 <(echo "$LITE_PKGS") <(echo "$FULL_PKGS"))
-          
-          FULL_UNIQUE_COUNT=$(echo "$ONLY_IN_FULL" | wc -l)
-          LITE_UNIQUE_COUNT=$(echo "$ONLY_IN_LITE" | wc -l)
-          
-          echo
-          echo "=== Packages unique to full image ($FULL_UNIQUE_COUNT total) ==="
-          echo "$ONLY_IN_FULL"
-          
-          echo
-          echo "=== Packages unique to lite image ($LITE_UNIQUE_COUNT total) ==="
-          if [ "$LITE_UNIQUE_COUNT" -gt 0 ]; then
-            echo "$ONLY_IN_LITE"
-          else
-            echo "None - all lite packages are included in full image"
-          fi
-          
-          mkdir -p package-diffs
-          {
-            echo "# Package Differences Between Lite and Full Images"
-            echo
-            echo "## Package Counts"
-            echo "- Lite image: $LITE_COUNT packages"
-            echo "- Full image: $FULL_COUNT packages"
-            echo "- Difference: $((FULL_COUNT - LITE_COUNT)) packages"
-            echo
-            echo "## Packages unique to full image ($FULL_UNIQUE_COUNT total)"
-            # shellcheck disable=SC2001 # sed anchors to line starts; parameter expansion cannot
-            echo "$ONLY_IN_FULL" | sed 's/^/- /'
-            echo
-            echo "## Packages unique to lite image ($LITE_UNIQUE_COUNT total)"
-            if [ "$LITE_UNIQUE_COUNT" -gt 0 ]; then
-              # shellcheck disable=SC2001 # sed anchors to line starts; parameter expansion cannot
-              echo "$ONLY_IN_LITE" | sed 's/^/- /'
-            else
-              echo "None - all lite packages are included in full image"
-            fi
-          } > package-diffs/package-differences.log
-          
-          echo
-          echo "Package differences saved to package-diffs/package-differences.log"
-
-      - name: Upload full image
-        if: ${{ github.event.inputs.skip_full_image != 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: wlanpi-os-${{ env.version }}-full
-          path: processed/wlanpi-os*full*.img.gz
-          if-no-files-found: ignore
 
       - name: Upload lite image
         uses: actions/upload-artifact@v4
@@ -802,12 +690,6 @@ jobs:
           echo "Using git tag: $GIT_TAG"
           echo "git_tag=$GIT_TAG" >> "$GITHUB_ENV"
 
-      - name: Set build type label for release title
-        run: |
-          if [ "${{ github.event.inputs.skip_full_image }}" == "true" ]; then
-            echo "BUILD_TYPE_LABEL=[LITE ONLY]" >> "$GITHUB_ENV"
-          fi
-
       - name: Check for required scripts
         run: |
           if [ ! -f "./scripts/prepare-release-notes" ]; then
@@ -829,7 +711,7 @@ jobs:
             --codename ${{ needs.build-prep.outputs.codename }} \
             --build-type ${{ github.event.inputs.build_type }} \
             --info-dir release-files \
-            --skip-full ${{ github.event.inputs.skip_full_image }} \
+            --skip-full true \
             --ab-suffix AB_PARTITION
           then
             echo "::error::Failed to generate release notes ..."
@@ -853,7 +735,7 @@ jobs:
         run: |
           gh release create ${{ env.git_tag }} \
             --prerelease \
-            --title "WLAN Pi OS ${{ needs.build-prep.outputs.full_version }} ${{ env.BUILD_TYPE_LABEL }}" \
+            --title "WLAN Pi OS ${{ needs.build-prep.outputs.full_version }} [LITE ONLY]" \
             --notes-file ./release-notes/release-notes.log \
             --generate-notes \
             release-files/*
