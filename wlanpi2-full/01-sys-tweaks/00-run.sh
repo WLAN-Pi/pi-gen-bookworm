@@ -14,5 +14,9 @@ echo "root:root" | chpasswd
 
 # Add user to adm group for journalctl access
 usermod -aG adm ${FIRST_USER_NAME}
+
+# Host keys are removed at export; generate this device's keys on first boot
+systemctl unmask regenerate_ssh_host_keys || true
+systemctl enable regenerate_ssh_host_keys
 EOF
 

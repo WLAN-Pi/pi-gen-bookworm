@@ -51,6 +51,13 @@ rm -f "${ROOTFS_DIR}"/usr/share/icons/*/icon-theme.cache
 
 rm -f "${ROOTFS_DIR}/var/lib/dbus/machine-id"
 
+# SSH host keys are per device. Remove them here, after the last package step
+# (any openssh-server configure creates them), for every image type, so no
+# published image carries keys that every device would share. The image
+# stages enable regenerate_ssh_host_keys (lite: wlanpi-persistent-identity
+# takes over) to create them on first boot.
+rm -f "${ROOTFS_DIR}/etc/ssh/"ssh_host_*_key*
+
 # true > "${ROOTFS_DIR}/etc/machine-id"
 
 echo -n > "${ROOTFS_DIR}/etc/machine-id"
