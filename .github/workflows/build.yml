@@ -785,7 +785,14 @@ jobs:
           path: all-logs
           
       - name: Consolidate and summarize job logs
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          # download-artifact v5+ extracts a lone pattern match straight into all-logs/; put it back under its name
+          mapfile -t LOG_ARTIFACTS < <(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" --jq '.artifacts[].name | select(endswith("-logs"))')
+          if [ "${#LOG_ARTIFACTS[@]}" -eq 1 ] && [ -d all-logs ]; then
+            mv all-logs "${LOG_ARTIFACTS[0]}" && mkdir all-logs && mv "${LOG_ARTIFACTS[0]}" all-logs/
+          fi
           echo "Downloaded logs:"
           find all-logs -type f | sort
           mkdir -p combined-logs
