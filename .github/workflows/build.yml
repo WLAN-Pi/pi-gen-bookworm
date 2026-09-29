@@ -76,7 +76,7 @@ jobs:
       codename: ${{ steps.version.outputs.codename }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0 
 
@@ -214,7 +214,7 @@ jobs:
           
       - name: Upload collected job logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wlanpi-os-${{ steps.version.outputs.full_version }}_build-prep-job-logs 
           path: collected-logs/**/*.log
@@ -226,7 +226,7 @@ jobs:
       - build-prep
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up build dependencies
         run: |
@@ -401,19 +401,19 @@ jobs:
           ls -la zips/
 
       - name: Upload lite image
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wlanpi-os-${{ env.version }}-lite
           path: processed/wlanpi-os*lite*.img.gz
 
       - name: Upload digest (checksums)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wlanpi-os-${{ env.version }}_digest
           path: processed/*.sha256
 
       - name: Upload info (included package versions)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wlanpi-os-${{ env.version }}_infos
           path: |
@@ -431,7 +431,7 @@ jobs:
           
       - name: Upload collected job logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}_build-image-job-logs
           path: collected-logs/**/*.log
@@ -443,7 +443,7 @@ jobs:
     if: ${{ github.event.inputs.ab_partition == 'true' }}
     steps:
       - name: Checkout repository (for scripts)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         
       - name: Install required dependencies
         run: |
@@ -451,7 +451,7 @@ jobs:
           sudo apt-get install -y parted mount util-linux dosfstools rsync
 
       - name: Download lite image artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}-lite
           path: original-images
@@ -623,13 +623,13 @@ jobs:
           fi
 
       - name: Upload A/B partitioned image
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}-lite-AB_PARTITION
           path: ab-partitioned/*.img.gz
           
       - name: Upload A/B partitioned image checksums
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}-lite-AB_PARTITION-sha256
           path: ab-partitioned/*.sha256
@@ -645,7 +645,7 @@ jobs:
           
       - name: Upload collected job logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}_ab-partition-image-job-logs  
           path: collected-logs/**/*.log
@@ -662,13 +662,13 @@ jobs:
         run: echo "This job only runs on the default branch"
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: '0'
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: all-artifacts
 
@@ -763,7 +763,7 @@ jobs:
           
       - name: Upload collected job logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}_release-job-logs 
           path: collected-logs/**/*.log
@@ -779,7 +779,7 @@ jobs:
     if: ${{ always() }}
     steps:
       - name: Download all log artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: "*-logs"
           path: all-logs
@@ -809,7 +809,7 @@ jobs:
           done
 
       - name: Upload combined logs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wlanpi-os-${{ needs.build-prep.outputs.full_version }}-github-logs
           path: "combined-logs/**/*.log"
