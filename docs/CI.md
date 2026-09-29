@@ -18,7 +18,6 @@
 3. File naming convention: `wlanpi-os-VERSION-TYPE.img`
   
    - Example: wlanpi-os-2025.04.19-rc.1-lite.img
-   - Example: wlanpi-os-2025.04.19-rc.1-full.img
 
 4. Others
 
