@@ -53,8 +53,6 @@ on_chroot << EOF
 usermod --pass='*' root
 EOF
 
-rm -f "${ROOTFS_DIR}/etc/ssh/"ssh_host_*_key*
-
 sed -i "s/PLACEHOLDER//" "${ROOTFS_DIR}/etc/default/keyboard"
 on_chroot << EOF
 DEBIAN_FRONTEND=noninteractive dpkg-reconfigure keyboard-configuration
